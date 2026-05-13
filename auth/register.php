@@ -92,287 +92,495 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Register - Internship Management System</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <title>Create Account - InternHub</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         :root {
-            --primary-color: #6366f1;
-            --primary-dark: #4f46e5;
-            --secondary-color: #f59e0b;
-            --success-color: #10b981;
-            --danger-color: #ef4444;
-            --dark-color: #1f2937;
-            --light-bg: #f9fafb;
-            --card-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-            --card-hover-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-card: rgba(255, 255, 255, 0.03);
+            --text-primary: #ffffff;
+            --text-secondary: rgba(255, 255, 255, 0.7);
+            --text-muted: rgba(255, 255, 255, 0.4);
+            --accent-primary: #6366f1;
+            --accent-secondary: #8b5cf6;
+            --accent-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%);
+            --border-color: rgba(255, 255, 255, 0.08);
         }
-        
+
         body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
             min-height: 100vh;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-        }
-        
-        .main-container {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            margin: 20px auto;
-            max-width: 1200px;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-        }
-        
-        .header-section {
-            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
-            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             padding: 2rem;
-            border-radius: 20px 20px 0 0;
-            position: relative;
-            overflow: hidden;
         }
-        
-        .header-section::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            right: -10%;
-            width: 300px;
-            height: 300px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 50%;
+
+        .bg-gradient {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background:
+                radial-gradient(ellipse at 20% 20%, rgba(99, 102, 241, 0.15) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 80%, rgba(139, 92, 246, 0.1) 0%, transparent 50%);
+            z-index: -1;
         }
-        
-        .header-content {
-            position: relative;
-            z-index: 1;
+
+        .grid-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image:
+                linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+            background-size: 60px 60px;
+            z-index: -1;
         }
-        
-        .header-title {
-            font-size: 2.5rem;
+
+        .register-container {
+            width: 100%;
+            max-width: 480px;
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .logo a {
+            font-size: 2rem;
+            font-weight: 800;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-decoration: none;
+        }
+
+        .register-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            padding: 2.5rem;
+            backdrop-filter: blur(20px);
+        }
+
+        .register-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .register-header h1 {
+            font-size: 1.75rem;
             font-weight: 700;
             margin-bottom: 0.5rem;
         }
-        
-        .header-subtitle {
-            font-size: 1.1rem;
-            opacity: 0.9;
+
+        .register-header p {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
         }
-        
-        .nav-buttons {
-            display: flex;
-            gap: 1rem;
-            flex-wrap: wrap;
-            margin-top: 1.5rem;
-        }
-        
-        .btn-custom {
-            padding: 0.75rem 1.5rem;
+
+        .alert {
+            padding: 1rem 1.25rem;
             border-radius: 12px;
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+        }
+
+        .alert-error {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #fca5a5;
+        }
+
+        .alert-success {
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            color: #86efac;
+        }
+
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 0.875rem;
             font-weight: 600;
-            text-decoration: none;
-            transition: all 0.3s ease;
-            border: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
         }
-        
-        .btn-primary-custom {
-            background: white;
-            color: var(--primary-color);
-        }
-        
-        .btn-primary-custom:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(255, 255, 255, 0.3);
-            color: var(--primary-dark);
-        }
-        
-        .btn-secondary-custom {
-            background: rgba(255, 255, 255, 0.2);
-            color: white;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-        }
-        
-        .btn-secondary-custom:hover {
-            background: rgba(255, 255, 255, 0.3);
-            transform: translateY(-2px);
-        }
-        
-        .content-section {
-            padding: 2rem;
-        }
-        
-        .form-control, .form-select {
-            border-radius: 10px;
-            border: 1px solid #e5e7eb;
-            padding: 0.75rem 1rem;
+
+        .form-input,
+        .form-select {
+            width: 100%;
+            padding: 0.875rem 1rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            color: var(--text-primary);
+            font-size: 1rem;
+            font-family: inherit;
             transition: all 0.3s ease;
         }
-        
-        .form-control:focus, .form-select:focus {
-            border-color: var(--primary-color);
+
+        .form-input:focus,
+        .form-select:focus {
+            outline: none;
+            border-color: var(--accent-primary);
             box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
         }
-        
-        .btn-apply {
-            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
-            color: white;
-            border: none;
-            padding: 0.75rem 1.5rem;
-            border-radius: 10px;
+
+        .form-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .form-select {
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.4)' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 1rem center;
+            background-size: 1rem;
+            padding-right: 3rem;
+        }
+
+        .form-select option {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+
+        .form-hint {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 0.5rem;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 1rem;
+            border-radius: 12px;
             font-weight: 600;
+            font-size: 1rem;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            text-decoration: none;
+            border: none;
+        }
+
+        .btn-primary {
+            background: var(--accent-gradient);
+            color: white;
+            box-shadow: 0 4px 20px rgba(99, 102, 241, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 30px rgba(99, 102, 241, 0.4);
+        }
+
+        .divider {
+            display: flex;
+            align-items: center;
+            margin: 1.5rem 0;
+            gap: 1rem;
+        }
+
+        .divider::before,
+        .divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border-color);
+        }
+
+        .divider span {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        .register-footer {
+            text-align: center;
+        }
+
+        .register-footer p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .register-footer a {
+            color: var(--accent-primary);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .register-footer a:hover {
+            color: var(--accent-secondary);
+        }
+
+        .back-link {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-top: 2rem;
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: color 0.3s ease;
+        }
+
+        .back-link:hover {
+            color: var(--text-primary);
+        }
+
+        .role-cards {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.75rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .role-card {
+            padding: 1rem 0.5rem;
+            background: var(--bg-secondary);
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            text-align: center;
+            cursor: pointer;
             transition: all 0.3s ease;
         }
-        
-        .btn-apply:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+
+        .role-card:hover {
+            border-color: rgba(99, 102, 241, 0.3);
         }
-    </style>
-    <script>
-        function toggleDepartmentField() {
-            const roleSelect = document.querySelector('select[name="role"]');
-            const departmentField = document.getElementById('department-field');
-            
-            if (roleSelect.value === 'student') {
-                departmentField.style.display = 'block';
-                document.querySelector('select[name="department_id"]').setAttribute('required', 'required');
-            } else {
-                departmentField.style.display = 'none';
-                document.querySelector('select[name="department_id"]').removeAttribute('required');
+
+        .role-card.active {
+            border-color: var(--accent-primary);
+            background: rgba(99, 102, 241, 0.1);
+        }
+
+        .role-card i {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+
+        .role-card span {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        .role-card.active span {
+            color: var(--text-primary);
+        }
+
+        .role-card input {
+            display: none;
+        }
+
+        #department-field {
+            display: none;
+            animation: slideDown 0.3s ease;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
             }
         }
-        
-        document.addEventListener('DOMContentLoaded', function() {
-            const roleSelect = document.querySelector('select[name="role"]');
-            roleSelect.addEventListener('change', toggleDepartmentField);
-            toggleDepartmentField(); // Initialize on page load
-        });
-    </script>
+
+        @media (max-width: 480px) {
+            body {
+                padding: 1rem;
+            }
+
+            .register-card {
+                padding: 1.75rem;
+            }
+
+            .role-cards {
+                grid-template-columns: 1fr;
+            }
+
+            .role-card {
+                display: flex;
+                align-items: center;
+                gap: 1rem;
+                padding: 1rem;
+                text-align: left;
+            }
+
+            .role-card i {
+                margin-bottom: 0;
+            }
+        }
+    </style>
 </head>
 <body>
-<div class="main-container">
-    <div class="header-section">
-        <div class="header-content">
-            <h1 class="header-title">Join Us Today! 🎓</h1>
-            <p class="header-subtitle">Create your account and start your internship journey</p>
-            
-            <div class="nav-buttons">
-                <a href="../index.php" class="btn-custom btn-secondary-custom">
-                    <i class="fas fa-home"></i> Home
-                </a>
-                <a href="login.php" class="btn-custom btn-primary-custom">
-                    <i class="fas fa-sign-in-alt"></i> Login
-                </a>
-            </div>
+    <div class="bg-gradient"></div>
+    <div class="grid-overlay"></div>
+
+    <div class="register-container">
+        <div class="logo">
+            <a href="../index.php">InternHub</a>
         </div>
-    </div>
 
-    <div class="content-section">
-        <div class="row justify-content-center">
-            <div class="col-md-6">
-                <?php if (!empty($errors)): ?>
-                    <div class="alert alert-danger border-0 mb-4" style="background: linear-gradient(135deg, #fee2e2, #fecaca);">
-                        <i class="fas fa-exclamation-triangle me-2"></i>
-                        <?php echo implode('<br>', $errors); ?>
-                    </div>
-                <?php endif; ?>
+        <div class="register-card">
+            <?php if (!empty($errors)): ?>
+                <div class="alert alert-error">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <?php echo implode('<br>', array_map('htmlspecialchars', $errors)); ?>
+                </div>
+            <?php endif; ?>
 
-                <?php if ($success): ?>
-                    <div class="alert alert-success border-0 mb-4" style="background: linear-gradient(135deg, #d1fae5, #a7f3d0);">
-                        <i class="fas fa-check-circle me-2"></i> <?php echo $success; ?>
-                    </div>
-                <?php endif; ?>
+            <?php if ($success): ?>
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle"></i>
+                    <?php echo $success; ?>
+                </div>
+            <?php endif; ?>
 
-                <div class="card border-0 shadow-sm">
-                    <div class="card-body p-4">
-                        <div class="text-center mb-4">
-                            <div class="text-primary mb-3">
-                                <i class="fas fa-user-plus fa-3x"></i>
-                            </div>
-                            <h4>Create Account</h4>
-                            <p class="text-muted">Fill in your details to get started</p>
-                        </div>
+            <div class="register-header">
+                <h1>Create your account</h1>
+                <p>Join thousands of students and companies</p>
+            </div>
 
-                        <form method="post" action="register.php">
-                            <div class="mb-3">
-                                <label class="form-label fw-semibold">
-                                    <i class="fas fa-user me-2"></i>Full Name
-                                </label>
-                                <input type="text" name="name" class="form-control" 
-                                       value="<?php echo htmlspecialchars($_POST['name'] ?? '', ENT_QUOTES); ?>" 
-                                       placeholder="Enter your full name" required>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label fw-semibold">
-                                    <i class="fas fa-envelope me-2"></i>Email Address
-                                </label>
-                                <input type="email" name="email" class="form-control" 
-                                       value="<?php echo htmlspecialchars($_POST['email'] ?? '', ENT_QUOTES); ?>" 
-                                       placeholder="Enter your email" required>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label fw-semibold">
-                                    <i class="fas fa-lock me-2"></i>Password
-                                </label>
-                                <input type="password" name="password" class="form-control" 
-                                       placeholder="Create a strong password" required>
-                            </div>
-                            <div class="mb-4">
-                                <label class="form-label fw-semibold">
-                                    <i class="fas fa-user-tag me-2"></i>Account Type
-                                </label>
-                                <select name="role" class="form-select" required>
-                                    <option value="">Select your role</option>
-                                    <option value="student" <?php echo (($_POST['role'] ?? '') === 'student') ? 'selected' : ''; ?>>
-                                        <i class="fas fa-graduation-cap"></i> Student
-                                    </option>
-                                    <option value="company" <?php echo (($_POST['role'] ?? '') === 'company') ? 'selected' : ''; ?>>
-                                        <i class="fas fa-building"></i> Company
-                                    </option>
-                                    <option value="admin" <?php echo (($_POST['role'] ?? '') === 'admin') ? 'selected' : ''; ?>>
-                                        <i class="fas fa-shield-alt"></i> Administrator
-                                    </option>
-                                </select>
-                            </div>
-                            <div class="mb-4" id="department-field" style="display: none;">
-                                <label class="form-label fw-semibold">
-                                    <i class="fas fa-graduation-cap me-2"></i>Field of Study/Department
-                                </label>
-                                <select name="department_id" class="form-select">
-                                    <option value="">Select your field of study</option>
-                                    <?php
-                                    include '../config/db.php';
-                                    $dept_stmt = $conn->prepare('SELECT id, name, icon FROM departments ORDER BY name');
-                                    $dept_stmt->execute();
-                                    $dept_result = $dept_stmt->get_result();
-                                    while ($dept = $dept_result->fetch_assoc()):
-                                    ?>
-                                        <option value="<?php echo $dept['id']; ?>" <?php echo (($_POST['department_id'] ?? '') == $dept['id']) ? 'selected' : ''; ?>>
-                                            <i class="fas <?php echo $dept['icon']; ?>"></i> <?php echo htmlspecialchars($dept['name'], ENT_QUOTES); ?>
-                                        </option>
-                                    <?php endwhile; $dept_stmt->close(); ?>
-                                </select>
-                                <div class="form-text">Select your primary field of study for relevant internship recommendations.</div>
-                            </div>
-                            <button type="submit" class="btn-apply w-100">
-                                <i class="fas fa-user-plus me-2"></i>Create Account
-                            </button>
-                        </form>
+            <form method="post" action="register.php">
+                <div class="form-group">
+                    <label class="form-label">Full Name</label>
+                    <input type="text" name="name" class="form-input"
+                           value="<?php echo htmlspecialchars($_POST['name'] ?? '', ENT_QUOTES); ?>"
+                           placeholder="John Doe" required>
+                </div>
 
-                        <div class="text-center mt-4">
-                            <p class="text-muted mb-0">Already have an account?</p>
-                            <a href="login.php" class="btn-custom btn-primary-custom mt-2">
-                                <i class="fas fa-sign-in-alt me-2"></i>Sign In
-                            </a>
-                        </div>
+                <div class="form-group">
+                    <label class="form-label">Email Address</label>
+                    <input type="email" name="email" class="form-input"
+                           value="<?php echo htmlspecialchars($_POST['email'] ?? '', ENT_QUOTES); ?>"
+                           placeholder="you@example.com" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Password</label>
+                    <input type="password" name="password" class="form-input"
+                           placeholder="Create a strong password" required>
+                    <p class="form-hint">Minimum 6 characters</p>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">I am a...</label>
+                    <div class="role-cards">
+                        <label class="role-card <?php echo (($_POST['role'] ?? '') === 'student') ? 'active' : ''; ?>">
+                            <input type="radio" name="role" value="student" <?php echo (($_POST['role'] ?? '') === 'student') ? 'checked' : ''; ?> required>
+                            <i class="fas fa-graduation-cap"></i>
+                            <span>Student</span>
+                        </label>
+                        <label class="role-card <?php echo (($_POST['role'] ?? '') === 'company') ? 'active' : ''; ?>">
+                            <input type="radio" name="role" value="company" <?php echo (($_POST['role'] ?? '') === 'company') ? 'checked' : ''; ?>>
+                            <i class="fas fa-building"></i>
+                            <span>Company</span>
+                        </label>
+                        <label class="role-card <?php echo (($_POST['role'] ?? '') === 'admin') ? 'active' : ''; ?>">
+                            <input type="radio" name="role" value="admin" <?php echo (($_POST['role'] ?? '') === 'admin') ? 'checked' : ''; ?>>
+                            <i class="fas fa-shield-alt"></i>
+                            <span>Admin</span>
+                        </label>
                     </div>
                 </div>
+
+                <div class="form-group" id="department-field">
+                    <label class="form-label">Field of Study</label>
+                    <select name="department_id" class="form-select">
+                        <option value="">Select your field</option>
+                        <?php
+                        include '../config/db.php';
+                        $dept_stmt = $conn->prepare('SELECT id, name FROM departments ORDER BY name');
+                        $dept_stmt->execute();
+                        $dept_result = $dept_stmt->get_result();
+                        while ($dept = $dept_result->fetch_assoc()):
+                        ?>
+                            <option value="<?php echo $dept['id']; ?>" <?php echo (($_POST['department_id'] ?? '') == $dept['id']) ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($dept['name'], ENT_QUOTES); ?>
+                            </option>
+                        <?php endwhile; $dept_stmt->close(); ?>
+                    </select>
+                    <p class="form-hint">This helps us recommend relevant internships</p>
+                </div>
+
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-rocket"></i> Create Account
+                </button>
+            </form>
+
+            <div class="divider">
+                <span>Already registered?</span>
+            </div>
+
+            <div class="register-footer">
+                <p>Have an account? <a href="login.php">Sign in</a></p>
             </div>
         </div>
+
+        <a href="../index.php" class="back-link">
+            <i class="fas fa-arrow-left"></i> Back to Home
+        </a>
     </div>
-</div>
+
+    <script>
+        // Role card selection
+        document.querySelectorAll('.role-card').forEach(card => {
+            card.addEventListener('click', function() {
+                document.querySelectorAll('.role-card').forEach(c => c.classList.remove('active'));
+                this.classList.add('active');
+                toggleDepartmentField();
+            });
+        });
+
+        function toggleDepartmentField() {
+            const studentSelected = document.querySelector('input[name="role"][value="student"]').checked;
+            const departmentField = document.getElementById('department-field');
+            const departmentSelect = document.querySelector('select[name="department_id"]');
+
+            if (studentSelected) {
+                departmentField.style.display = 'block';
+                departmentSelect.setAttribute('required', 'required');
+            } else {
+                departmentField.style.display = 'none';
+                departmentSelect.removeAttribute('required');
+            }
+        }
+
+        // Initialize on page load
+        toggleDepartmentField();
+    </script>
 </body>
 </html>
