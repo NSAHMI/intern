@@ -69,7 +69,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['application_id'], $_P
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>View Applications</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>View Applications - Internship Management System</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -236,6 +237,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['application_id'], $_P
             <div class="nav-buttons">
                 <a href="dashboard.php" class="btn-custom btn-primary-custom">
                     <i class="fas fa-arrow-left"></i> Back to Dashboard
+                </a>
+                <a href="post_internship.php" class="btn-custom btn-secondary-custom">
+                    <i class="fas fa-plus-circle"></i> Post Internship
+                </a>
+                <a href="profile.php" class="btn-custom btn-secondary-custom">
+                    <i class="fas fa-building"></i> Company Profile
+                </a>
+                <a href="../messages.php" class="btn-custom btn-secondary-custom">
+                    <i class="fas fa-envelope"></i> Messages
                 </a>
                 <a href="../auth/logout.php" class="btn-custom btn-secondary-custom">
                     <i class="fas fa-sign-out-alt"></i> Logout

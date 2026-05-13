@@ -219,8 +219,14 @@ $engagement_stats = $gamification->getEngagementStats($_SESSION['user_id']);
                 <a href="my_applications.php" class="btn-custom btn-secondary-custom">
                     <i class="fas fa-clipboard-list"></i> My Applications
                 </a>
+                <a href="profile.php" class="btn-custom btn-secondary-custom">
+                    <i class="fas fa-user"></i> My Profile
+                </a>
                 <a href="gamification.php" class="btn-custom btn-secondary-custom">
                     <i class="fas fa-trophy"></i> Achievements
+                </a>
+                <a href="../messages.php" class="btn-custom btn-secondary-custom">
+                    <i class="fas fa-envelope"></i> Messages
                 </a>
                 <a href="../auth/setup_email_2fa.php" class="btn-custom btn-secondary-custom">
                     <i class="fas fa-shield-alt"></i> 2FA Settings
