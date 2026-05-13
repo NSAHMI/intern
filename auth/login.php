@@ -137,250 +137,400 @@ elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Internship Management System</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <title>Sign In - InternHub</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         :root {
-            --primary-color: #6366f1;
-            --primary-dark: #4f46e5;
-            --secondary-color: #f59e0b;
-            --success-color: #10b981;
-            --danger-color: #ef4444;
-            --dark-color: #1f2937;
-            --light-bg: #f9fafb;
-            --card-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-            --card-hover-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-card: rgba(255, 255, 255, 0.03);
+            --bg-card-hover: rgba(255, 255, 255, 0.06);
+            --text-primary: #ffffff;
+            --text-secondary: rgba(255, 255, 255, 0.7);
+            --text-muted: rgba(255, 255, 255, 0.4);
+            --accent-primary: #6366f1;
+            --accent-secondary: #8b5cf6;
+            --accent-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%);
+            --border-color: rgba(255, 255, 255, 0.08);
+            --success: #22c55e;
+            --error: #ef4444;
         }
-        
+
         body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
             min-height: 100vh;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-        }
-        
-        .main-container {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            margin: 20px auto;
-            max-width: 1200px;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-        }
-        
-        .header-section {
-            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
-            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             padding: 2rem;
-            border-radius: 20px 20px 0 0;
-            position: relative;
-            overflow: hidden;
+            overflow-x: hidden;
         }
-        
-        .header-section::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            right: -10%;
-            width: 300px;
-            height: 300px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 50%;
+
+        .bg-gradient {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background:
+                radial-gradient(ellipse at 20% 20%, rgba(99, 102, 241, 0.15) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 80%, rgba(139, 92, 246, 0.1) 0%, transparent 50%);
+            z-index: -1;
         }
-        
-        .header-content {
-            position: relative;
-            z-index: 1;
+
+        .grid-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image:
+                linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+            background-size: 60px 60px;
+            z-index: -1;
         }
-        
-        .header-title {
-            font-size: 2.5rem;
+
+        .login-container {
+            width: 100%;
+            max-width: 440px;
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 2.5rem;
+        }
+
+        .logo a {
+            font-size: 2rem;
+            font-weight: 800;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-decoration: none;
+            letter-spacing: -0.5px;
+        }
+
+        .login-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            padding: 2.5rem;
+            backdrop-filter: blur(20px);
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .login-header h1 {
+            font-size: 1.75rem;
             font-weight: 700;
             margin-bottom: 0.5rem;
         }
-        
-        .header-subtitle {
-            font-size: 1.1rem;
-            opacity: 0.9;
+
+        .login-header p {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
         }
-        
-        .nav-buttons {
-            display: flex;
-            gap: 1rem;
-            flex-wrap: wrap;
-            margin-top: 1.5rem;
-        }
-        
-        .btn-custom {
-            padding: 0.75rem 1.5rem;
+
+        .alert {
+            padding: 1rem 1.25rem;
             border-radius: 12px;
-            font-weight: 600;
-            text-decoration: none;
-            transition: all 0.3s ease;
-            border: none;
-            display: inline-flex;
+            margin-bottom: 1.5rem;
+            display: flex;
             align-items: center;
-            gap: 0.5rem;
+            gap: 0.75rem;
+            font-size: 0.9rem;
         }
-        
-        .btn-primary-custom {
-            background: white;
-            color: var(--primary-color);
+
+        .alert-error {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #fca5a5;
         }
-        
-        .btn-primary-custom:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(255, 255, 255, 0.3);
-            color: var(--primary-dark);
+
+        .alert-success {
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            color: #86efac;
         }
-        
-        .btn-secondary-custom {
-            background: rgba(255, 255, 255, 0.2);
-            color: white;
-            border: 1px solid rgba(255, 255, 255, 0.3);
+
+        .form-group {
+            margin-bottom: 1.5rem;
         }
-        
-        .btn-secondary-custom:hover {
-            background: rgba(255, 255, 255, 0.3);
-            transform: translateY(-2px);
+
+        .form-label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
         }
-        
-        .content-section {
-            padding: 2rem;
-        }
-        
-        .form-control, .form-select {
-            border-radius: 10px;
-            border: 1px solid #e5e7eb;
-            padding: 0.75rem 1rem;
+
+        .form-input {
+            width: 100%;
+            padding: 0.875rem 1rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            color: var(--text-primary);
+            font-size: 1rem;
+            font-family: inherit;
             transition: all 0.3s ease;
         }
-        
-        .form-control:focus, .form-select:focus {
-            border-color: var(--primary-color);
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--accent-primary);
             box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
         }
-        
-        .btn-apply {
-            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
-            color: white;
-            border: none;
-            padding: 0.75rem 1.5rem;
-            border-radius: 10px;
-            font-weight: 600;
-            transition: all 0.3s ease;
+
+        .form-input::placeholder {
+            color: var(--text-muted);
         }
-        
-        .btn-apply:hover {
+
+        .form-input.code-input {
+            text-align: center;
+            font-size: 1.75rem;
+            letter-spacing: 0.5rem;
+            font-weight: 600;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 1rem;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 1rem;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            text-decoration: none;
+            border: none;
+        }
+
+        .btn-primary {
+            background: var(--accent-gradient);
+            color: white;
+            box-shadow: 0 4px 20px rgba(99, 102, 241, 0.3);
+        }
+
+        .btn-primary:hover {
             transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+            box-shadow: 0 6px 30px rgba(99, 102, 241, 0.4);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+            margin-top: 0.75rem;
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-card);
+            color: var(--text-primary);
+        }
+
+        .divider {
+            display: flex;
+            align-items: center;
+            margin: 2rem 0;
+            gap: 1rem;
+        }
+
+        .divider::before,
+        .divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border-color);
+        }
+
+        .divider span {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        .login-footer {
+            text-align: center;
+        }
+
+        .login-footer p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .login-footer a {
+            color: var(--accent-primary);
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.3s ease;
+        }
+
+        .login-footer a:hover {
+            color: var(--accent-secondary);
+        }
+
+        .back-link {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-top: 2rem;
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: color 0.3s ease;
+        }
+
+        .back-link:hover {
+            color: var(--text-primary);
+        }
+
+        .two-fa-icon {
+            width: 80px;
+            height: 80px;
+            background: var(--accent-gradient);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.5rem;
+            font-size: 2rem;
+        }
+
+        .code-hint {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            margin-top: 0.5rem;
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 1rem;
+            }
+
+            .login-card {
+                padding: 1.75rem;
+            }
+
+            .login-header h1 {
+                font-size: 1.5rem;
+            }
         }
     </style>
 </head>
 <body>
-<div class="main-container">
-    <div class="header-section">
-        <div class="header-content">
-            <h1 class="header-title">Welcome Back! 👋</h1>
-            <p class="header-subtitle">Sign in to access your internship dashboard</p>
-            
-            <div class="nav-buttons">
-                <a href="../index.php" class="btn-custom btn-secondary-custom">
-                    <i class="fas fa-home"></i> Home
-                </a>
-                <a href="register.php" class="btn-custom btn-primary-custom">
-                    <i class="fas fa-user-plus"></i> Register
-                </a>
-            </div>
+    <div class="bg-gradient"></div>
+    <div class="grid-overlay"></div>
+
+    <div class="login-container">
+        <div class="logo">
+            <a href="../index.php">InternHub</a>
         </div>
-    </div>
 
-    <div class="content-section">
-        <div class="row justify-content-center">
-            <div class="col-md-6">
-                <?php if ($error): ?>
-                    <div class="alert alert-danger border-0" style="background: linear-gradient(135deg, #fee2e2, #fecaca);">
-                        <i class="fas fa-exclamation-triangle me-2"></i> <?php echo htmlspecialchars($error, ENT_QUOTES); ?>
-                    </div>
-                <?php endif; ?>
-
-                <div class="card border-0 shadow-sm">
-                    <div class="card-body p-4">
-                        <div class="text-center mb-4">
-                            <div class="text-primary mb-3">
-                                <i class="fas fa-sign-in-alt fa-3x"></i>
-                            </div>
-                            <h4>Sign In</h4>
-                            <p class="text-muted">Enter your credentials to continue</p>
-                        </div>
-
-                        <?php if ($show_2fa): ?>
-                        <!-- 2FA Verification Form -->
-                        <form method="post" action="login.php">
-                            <input type="hidden" name="verify_2fa" value="1">
-                            <div class="text-center mb-4">
-                                <div class="mb-3">
-                                    <i class="fas fa-shield-alt fa-3x text-primary"></i>
-                                </div>
-                                <h5>Two-Factor Authentication</h5>
-                                <p class="text-muted">Enter the 6-digit code sent to your email</p>
-                            </div>
-                            
-                            <div class="mb-4">
-                                <label class="form-label fw-semibold">
-                                    <i class="fas fa-key me-2"></i>Verification Code
-                                </label>
-                                <input type="text" name="2fa_code" class="form-control text-center" 
-                                       placeholder="000000" maxlength="6" pattern="\d{6}" 
-                                       style="font-size: 24px; letter-spacing: 8px;" required>
-                                <small class="text-muted">Code expires in 10 minutes</small>
-                            </div>
-                            
-                            <div class="d-grid gap-2">
-                                <button type="submit" class="btn-apply">
-                                    <i class="fas fa-check me-2"></i>Verify & Login
-                                </button>
-                                <a href="login.php" class="btn btn-outline-secondary">
-                                    <i class="fas fa-arrow-left me-2"></i>Back to Login
-                                </a>
-                            </div>
-                        </form>
-                        
-                        <?php else: ?>
-                        <!-- Regular Login Form -->
-                        <form method="post" action="login.php">
-                            <div class="mb-3">
-                                <label class="form-label fw-semibold">
-                                    <i class="fas fa-envelope me-2"></i>Email Address
-                                </label>
-                                <input type="email" name="email" class="form-control" 
-                                       value="<?php echo htmlspecialchars($_POST['email'] ?? '', ENT_QUOTES); ?>" 
-                                       placeholder="Enter your email" required>
-                            </div>
-                            <div class="mb-4">
-                                <label class="form-label fw-semibold">
-                                    <i class="fas fa-lock me-2"></i>Password
-                                </label>
-                                <input type="password" name="password" class="form-control" 
-                                       placeholder="Enter your password" required>
-                            </div>
-                            <button type="submit" class="btn-apply w-100">
-                                <i class="fas fa-sign-in-alt me-2"></i>Sign In
-                            </button>
-                        </form>
-                        <?php endif; ?>
-
-                        <div class="text-center mt-4">
-                            <p class="text-muted mb-0">Don't have an account?</p>
-                            <a href="register.php" class="btn-custom btn-primary-custom mt-2">
-                                <i class="fas fa-user-plus me-2"></i>Create Account
-                            </a>
-                        </div>
-                    </div>
+        <div class="login-card">
+            <?php if ($error): ?>
+                <div class="alert alert-error">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <?php echo htmlspecialchars($error, ENT_QUOTES); ?>
                 </div>
-            </div>
+            <?php endif; ?>
+
+            <?php if ($success): ?>
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle"></i>
+                    <?php echo htmlspecialchars($success, ENT_QUOTES); ?>
+                </div>
+            <?php endif; ?>
+
+            <?php if ($show_2fa): ?>
+                <!-- 2FA Verification Form -->
+                <div class="login-header">
+                    <div class="two-fa-icon">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    <h1>Verification Required</h1>
+                    <p>Enter the 6-digit code sent to your email</p>
+                </div>
+
+                <form method="post" action="login.php">
+                    <input type="hidden" name="verify_2fa" value="1">
+
+                    <div class="form-group">
+                        <input type="text" name="2fa_code" class="form-input code-input"
+                               placeholder="000000" maxlength="6" pattern="\d{6}"
+                               autocomplete="one-time-code" required autofocus>
+                        <p class="code-hint">Code expires in 10 minutes</p>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-check"></i> Verify & Sign In
+                    </button>
+                    <a href="login.php" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Back to Login
+                    </a>
+                </form>
+
+            <?php else: ?>
+                <!-- Regular Login Form -->
+                <div class="login-header">
+                    <h1>Welcome back</h1>
+                    <p>Sign in to your account to continue</p>
+                </div>
+
+                <form method="post" action="login.php">
+                    <div class="form-group">
+                        <label class="form-label">Email Address</label>
+                        <input type="email" name="email" class="form-input"
+                               value="<?php echo htmlspecialchars($_POST['email'] ?? '', ENT_QUOTES); ?>"
+                               placeholder="you@example.com" required autofocus>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Password</label>
+                        <input type="password" name="password" class="form-input"
+                               placeholder="Enter your password" required>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-arrow-right"></i> Sign In
+                    </button>
+                </form>
+
+                <div class="divider">
+                    <span>New here?</span>
+                </div>
+
+                <div class="login-footer">
+                    <p>Don't have an account? <a href="register.php">Create one</a></p>
+                </div>
+            <?php endif; ?>
         </div>
+
+        <a href="../index.php" class="back-link">
+            <i class="fas fa-arrow-left"></i> Back to Home
+        </a>
     </div>
-</div>
 </body>
 </html>

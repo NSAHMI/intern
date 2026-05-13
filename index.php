@@ -22,250 +22,694 @@ if (!empty($_SESSION['user_id']) && !empty($_SESSION['role'])) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Connect students with amazing internship opportunities. A world-class platform for students, companies, and administrators.">
-    <title>Internship Management System - Connect Students with Opportunities</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <meta name="description" content="Connect students with amazing internship opportunities. A modern platform for career growth.">
+    <title>InternHub - Find Your Dream Internship</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         :root {
-            --primary-color: #6366f1;
-            --primary-dark: #4f46e5;
-            --secondary-color: #f59e0b;
-            --success-color: #10b981;
-            --danger-color: #ef4444;
-            --dark-color: #1f2937;
-            --light-bg: #f9fafb;
-            --card-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-            --card-hover-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-card: rgba(255, 255, 255, 0.03);
+            --bg-card-hover: rgba(255, 255, 255, 0.06);
+            --text-primary: #ffffff;
+            --text-secondary: rgba(255, 255, 255, 0.7);
+            --text-muted: rgba(255, 255, 255, 0.4);
+            --accent-primary: #6366f1;
+            --accent-secondary: #8b5cf6;
+            --accent-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%);
+            --border-color: rgba(255, 255, 255, 0.08);
+            --glow: 0 0 60px rgba(99, 102, 241, 0.3);
         }
-        
+
         body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
             min-height: 100vh;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            overflow-x: hidden;
+            line-height: 1.6;
         }
-        
-        .main-container {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            margin: 20px auto;
-            max-width: 1200px;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+
+        /* Animated Background */
+        .bg-gradient {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background:
+                radial-gradient(ellipse at 20% 20%, rgba(99, 102, 241, 0.15) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 80%, rgba(139, 92, 246, 0.1) 0%, transparent 50%),
+                radial-gradient(ellipse at 50% 50%, rgba(168, 85, 247, 0.05) 0%, transparent 70%);
+            z-index: -1;
         }
-        
-        .header-section {
-            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
-            color: white;
-            padding: 2rem;
-            border-radius: 20px 20px 0 0;
-            position: relative;
-            overflow: hidden;
+
+        .grid-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image:
+                linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+            background-size: 60px 60px;
+            z-index: -1;
         }
-        
-        .header-section::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            right: -10%;
-            width: 300px;
-            height: 300px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 50%;
+
+        /* Navigation */
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            padding: 1rem 2rem;
+            background: rgba(10, 10, 15, 0.8);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border-color);
         }
-        
-        .header-content {
-            position: relative;
-            z-index: 1;
+
+        .nav-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
-        
-        .header-title {
-            font-size: 2.5rem;
-            font-weight: 700;
-            margin-bottom: 0.5rem;
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 800;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -0.5px;
         }
-        
-        .header-subtitle {
-            font-size: 1.1rem;
-            opacity: 0.9;
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
         }
-        
+
+        .nav-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 0.9rem;
+            transition: color 0.3s ease;
+        }
+
+        .nav-link:hover {
+            color: var(--text-primary);
+        }
+
         .nav-buttons {
             display: flex;
             gap: 1rem;
-            flex-wrap: wrap;
-            margin-top: 1.5rem;
         }
-        
-        .btn-custom {
+
+        .btn {
             padding: 0.75rem 1.5rem;
             border-radius: 12px;
             font-weight: 600;
+            font-size: 0.9rem;
             text-decoration: none;
             transition: all 0.3s ease;
+            cursor: pointer;
             border: none;
             display: inline-flex;
             align-items: center;
             gap: 0.5rem;
         }
-        
-        .btn-primary-custom {
-            background: white;
-            color: var(--primary-color);
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
         }
-        
-        .btn-primary-custom:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(255, 255, 255, 0.3);
-            color: var(--primary-dark);
+
+        .btn-ghost:hover {
+            background: var(--bg-card);
+            color: var(--text-primary);
+            border-color: rgba(255, 255, 255, 0.15);
         }
-        
-        .btn-secondary-custom {
-            background: rgba(255, 255, 255, 0.2);
+
+        .btn-primary {
+            background: var(--accent-gradient);
             color: white;
-            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 4px 20px rgba(99, 102, 241, 0.3);
         }
-        
-        .btn-secondary-custom:hover {
-            background: rgba(255, 255, 255, 0.3);
+
+        .btn-primary:hover {
             transform: translateY(-2px);
+            box-shadow: 0 6px 30px rgba(99, 102, 241, 0.4);
         }
-        
-        .content-section {
-            padding: 2rem;
+
+        .btn-large {
+            padding: 1rem 2rem;
+            font-size: 1rem;
         }
-        
-        .btn-apply {
-            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+
+        /* Hero Section */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8rem 2rem 4rem;
+            text-align: center;
+        }
+
+        .hero-content {
+            max-width: 900px;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 100px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 2rem;
+        }
+
+        .badge-dot {
+            width: 8px;
+            height: 8px;
+            background: #22c55e;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .hero h1 {
+            font-size: clamp(2.5rem, 8vw, 5rem);
+            font-weight: 800;
+            line-height: 1.1;
+            letter-spacing: -2px;
+            margin-bottom: 1.5rem;
+        }
+
+        .hero h1 span {
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero p {
+            font-size: 1.25rem;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto 3rem;
+            line-height: 1.8;
+        }
+
+        .hero-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .hero-stats {
+            display: flex;
+            gap: 4rem;
+            justify-content: center;
+            margin-top: 5rem;
+            padding-top: 3rem;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: 800;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .stat-label {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin-top: 0.25rem;
+        }
+
+        /* Features Section */
+        .features {
+            padding: 6rem 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 4rem;
+        }
+
+        .section-header h2 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            letter-spacing: -1px;
+        }
+
+        .section-header p {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .feature-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            padding: 2.5rem;
+            transition: all 0.4s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.5), transparent);
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+
+        .feature-card:hover {
+            background: var(--bg-card-hover);
+            border-color: rgba(99, 102, 241, 0.3);
+            transform: translateY(-4px);
+        }
+
+        .feature-card:hover::before {
+            opacity: 1;
+        }
+
+        .feature-icon {
+            width: 60px;
+            height: 60px;
+            background: var(--accent-gradient);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
             color: white;
+            margin-bottom: 1.5rem;
+        }
+
+        .feature-card h3 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 0.75rem;
+        }
+
+        .feature-card p {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            line-height: 1.7;
+        }
+
+        .feature-list {
+            list-style: none;
+            margin-top: 1.5rem;
+        }
+
+        .feature-list li {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            padding: 0.5rem 0;
+        }
+
+        .feature-list li i {
+            color: #22c55e;
+            font-size: 0.8rem;
+        }
+
+        /* CTA Section */
+        .cta {
+            padding: 6rem 2rem;
+            text-align: center;
+        }
+
+        .cta-card {
+            max-width: 800px;
+            margin: 0 auto;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 32px;
+            padding: 4rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cta-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(99, 102, 241, 0.1) 0%, transparent 50%);
+            animation: rotate 20s linear infinite;
+        }
+
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .cta-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .cta h2 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            letter-spacing: -1px;
+        }
+
+        .cta p {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            margin-bottom: 2rem;
+        }
+
+        /* Footer */
+        .footer {
+            padding: 3rem 2rem;
+            border-top: 1px solid var(--border-color);
+            text-align: center;
+        }
+
+        .footer p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .footer-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: color 0.3s ease;
+        }
+
+        .footer-links a:hover {
+            color: var(--text-primary);
+        }
+
+        /* Mobile Menu */
+        .mobile-menu-btn {
+            display: none;
+            background: none;
             border: none;
-            padding: 0.75rem 1.5rem;
-            border-radius: 10px;
-            font-weight: 600;
-            transition: all 0.3s ease;
+            color: var(--text-primary);
+            font-size: 1.5rem;
+            cursor: pointer;
         }
-        
-        .btn-apply:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+
+        /* Responsive */
+        @media (max-width: 968px) {
+            .nav-links {
+                display: none;
+            }
+
+            .mobile-menu-btn {
+                display: block;
+            }
+
+            .hero-stats {
+                gap: 2rem;
+                flex-wrap: wrap;
+            }
+
+            .stat-number {
+                font-size: 2rem;
+            }
+
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .cta-card {
+                padding: 2.5rem;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .navbar {
+                padding: 1rem;
+            }
+
+            .hero {
+                padding: 7rem 1rem 3rem;
+            }
+
+            .hero h1 {
+                font-size: 2.25rem;
+                letter-spacing: -1px;
+            }
+
+            .hero p {
+                font-size: 1rem;
+            }
+
+            .hero-buttons {
+                flex-direction: column;
+            }
+
+            .btn-large {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .hero-stats {
+                gap: 1.5rem;
+            }
+
+            .feature-card {
+                padding: 1.5rem;
+            }
+
+            .cta h2 {
+                font-size: 1.75rem;
+            }
+        }
+
+        /* Smooth scrolling */
+        html {
+            scroll-behavior: smooth;
+        }
+
+        /* Focus states */
+        *:focus-visible {
+            outline: 2px solid var(--accent-primary);
+            outline-offset: 2px;
         }
     </style>
 </head>
 <body>
-<div class="main-container">
-    <div class="header-section">
-        <div class="header-content">
-            <h1 class="header-title">Internship Management System 🚀</h1>
-            <p class="header-subtitle">Connect students with amazing internship opportunities</p>
-            
+    <div class="bg-gradient"></div>
+    <div class="grid-overlay"></div>
+
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.php" class="logo">InternHub</a>
+            <div class="nav-links">
+                <a href="#features" class="nav-link">Features</a>
+                <a href="public_internships.php" class="nav-link">Browse Jobs</a>
+                <a href="#about" class="nav-link">About</a>
+            </div>
             <div class="nav-buttons">
-                <a href="auth/login.php" class="btn-custom btn-primary-custom">
-                    <i class="fas fa-sign-in-alt"></i> Login
-                </a>
-                <a href="auth/register.php" class="btn-custom btn-secondary-custom">
-                    <i class="fas fa-user-plus"></i> Register
-                </a>
-                <a href="public_internships.php" class="btn-custom btn-secondary-custom">
-                    <i class="fas fa-briefcase"></i> Browse Internships
-                </a>
-                <a href="student/dashboard.php" class="btn-custom btn-secondary-custom">
-                    <i class="fas fa-graduation-cap"></i> Student Portal
-                </a>
-                <a href="company/dashboard.php" class="btn-custom btn-secondary-custom">
-                    <i class="fas fa-building"></i> Company Portal
-                </a>
-                <a href="admin/dashboard.php" class="btn-custom btn-secondary-custom">
-                    <i class="fas fa-shield-alt"></i> Admin Portal
-                </a>
+                <a href="auth/login.php" class="btn btn-ghost">Sign In</a>
+                <a href="auth/register.php" class="btn btn-primary">Get Started</a>
             </div>
+            <button class="mobile-menu-btn" aria-label="Menu">
+                <i class="fas fa-bars"></i>
+            </button>
         </div>
-    </div>
+    </nav>
 
-    <div class="content-section">
-        <div class="row text-center mb-4">
-            <div class="col-md-4 mb-4">
-                <div class="card border-0 shadow-sm h-100">
-                    <div class="card-body p-4">
-                        <div class="text-primary mb-3">
-                            <i class="fas fa-graduation-cap fa-3x"></i>
-                        </div>
-                        <h5 class="fw-bold">For Students</h5>
-                        <p class="text-muted mb-3">Discover and apply for exciting internship opportunities. Build your career with real-world experience.</p>
-                        <ul class="list-unstyled text-start small text-muted">
-                            <li><i class="fas fa-check text-success me-2"></i>Browse internships by field</li>
-                            <li><i class="fas fa-check text-success me-2"></i>Track your applications</li>
-                            <li><i class="fas fa-check text-success me-2"></i>Earn achievements &amp; points</li>
-                        </ul>
-                    </div>
-                </div>
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-content">
+            <div class="badge">
+                <span class="badge-dot"></span>
+                Now accepting applications
             </div>
-            <div class="col-md-4 mb-4">
-                <div class="card border-0 shadow-sm h-100">
-                    <div class="card-body p-4">
-                        <div class="text-success mb-3">
-                            <i class="fas fa-building fa-3x"></i>
-                        </div>
-                        <h5 class="fw-bold">For Companies</h5>
-                        <p class="text-muted mb-3">Post internships and connect with talented students. Find the perfect candidates for your team.</p>
-                        <ul class="list-unstyled text-start small text-muted">
-                            <li><i class="fas fa-check text-success me-2"></i>Post unlimited internships</li>
-                            <li><i class="fas fa-check text-success me-2"></i>Review applications easily</li>
-                            <li><i class="fas fa-check text-success me-2"></i>Message candidates directly</li>
-                        </ul>
-                    </div>
-                </div>
+            <h1>Launch Your Career<br>with <span>Real Experience</span></h1>
+            <p>Connect with top companies, discover meaningful internships, and take the first step towards your dream career. All in one modern platform.</p>
+            <div class="hero-buttons">
+                <a href="auth/register.php" class="btn btn-primary btn-large">
+                    <i class="fas fa-rocket"></i> Start Your Journey
+                </a>
+                <a href="public_internships.php" class="btn btn-ghost btn-large">
+                    <i class="fas fa-search"></i> Explore Internships
+                </a>
             </div>
-            <div class="col-md-4 mb-4">
-                <div class="card border-0 shadow-sm h-100">
-                    <div class="card-body p-4">
-                        <div class="text-warning mb-3">
-                            <i class="fas fa-shield-alt fa-3x"></i>
-                        </div>
-                        <h5 class="fw-bold">For Administrators</h5>
-                        <p class="text-muted mb-3">Manage users and oversee the platform. Keep everything running smoothly.</p>
-                        <ul class="list-unstyled text-start small text-muted">
-                            <li><i class="fas fa-check text-success me-2"></i>User management tools</li>
-                            <li><i class="fas fa-check text-success me-2"></i>Analytics dashboard</li>
-                            <li><i class="fas fa-check text-success me-2"></i>Content management</li>
-                        </ul>
-                    </div>
+            <div class="hero-stats">
+                <div class="stat">
+                    <div class="stat-number">500+</div>
+                    <div class="stat-label">Active Internships</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-number">200+</div>
+                    <div class="stat-label">Partner Companies</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-number">10k+</div>
+                    <div class="stat-label">Students Placed</div>
                 </div>
             </div>
         </div>
+    </section>
 
-        <!-- Features Section -->
-        <div class="text-center mt-4 pt-4 border-top">
-            <h5 class="mb-4"><i class="fas fa-star text-warning me-2"></i>Platform Features</h5>
-            <div class="row g-3">
-                <div class="col-6 col-md-3">
-                    <div class="p-3 bg-light rounded">
-                        <i class="fas fa-search fa-2x text-primary mb-2"></i>
-                        <div class="small fw-semibold">Advanced Search</div>
-                    </div>
+    <!-- Features Section -->
+    <section class="features" id="features">
+        <div class="section-header">
+            <h2>Built for Everyone</h2>
+            <p>Whether you're a student seeking opportunities or a company looking for talent, we've got you covered.</p>
+        </div>
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-graduation-cap"></i>
                 </div>
-                <div class="col-6 col-md-3">
-                    <div class="p-3 bg-light rounded">
-                        <i class="fas fa-envelope fa-2x text-info mb-2"></i>
-                        <div class="small fw-semibold">In-App Messaging</div>
-                    </div>
+                <h3>For Students</h3>
+                <p>Discover internships that match your skills and interests. Build your portfolio with real-world experience.</p>
+                <ul class="feature-list">
+                    <li><i class="fas fa-check"></i> Smart job matching</li>
+                    <li><i class="fas fa-check"></i> Application tracking</li>
+                    <li><i class="fas fa-check"></i> Career achievements</li>
+                    <li><i class="fas fa-check"></i> Direct messaging</li>
+                </ul>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-building"></i>
                 </div>
-                <div class="col-6 col-md-3">
-                    <div class="p-3 bg-light rounded">
-                        <i class="fas fa-trophy fa-2x text-warning mb-2"></i>
-                        <div class="small fw-semibold">Gamification</div>
-                    </div>
+                <h3>For Companies</h3>
+                <p>Find exceptional talent from top universities. Streamline your recruitment with modern tools.</p>
+                <ul class="feature-list">
+                    <li><i class="fas fa-check"></i> Post unlimited jobs</li>
+                    <li><i class="fas fa-check"></i> Applicant management</li>
+                    <li><i class="fas fa-check"></i> Company branding</li>
+                    <li><i class="fas fa-check"></i> Analytics dashboard</li>
+                </ul>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-shield-alt"></i>
                 </div>
-                <div class="col-6 col-md-3">
-                    <div class="p-3 bg-light rounded">
-                        <i class="fas fa-mobile-alt fa-2x text-success mb-2"></i>
-                        <div class="small fw-semibold">Mobile Ready</div>
-                    </div>
+                <h3>For Administrators</h3>
+                <p>Powerful tools to manage the platform, verify companies, and ensure quality experiences.</p>
+                <ul class="feature-list">
+                    <li><i class="fas fa-check"></i> User management</li>
+                    <li><i class="fas fa-check"></i> Company verification</li>
+                    <li><i class="fas fa-check"></i> Platform analytics</li>
+                    <li><i class="fas fa-check"></i> Content moderation</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta" id="about">
+        <div class="cta-card">
+            <div class="cta-content">
+                <h2>Ready to Get Started?</h2>
+                <p>Join thousands of students and companies already using InternHub to build the future workforce.</p>
+                <div class="hero-buttons">
+                    <a href="auth/register.php" class="btn btn-primary btn-large">
+                        <i class="fas fa-user-plus"></i> Create Free Account
+                    </a>
+                    <a href="auth/login.php" class="btn btn-ghost btn-large">
+                        <i class="fas fa-sign-in-alt"></i> Sign In
+                    </a>
                 </div>
             </div>
         </div>
-    </div>
-</div>
+    </section>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-links">
+            <a href="student/dashboard.php">Student Portal</a>
+            <a href="company/dashboard.php">Company Portal</a>
+            <a href="admin/dashboard.php">Admin Portal</a>
+        </div>
+        <p>&copy; 2024 InternHub. Connecting students with opportunities.</p>
+    </footer>
+
+    <script>
+        // Simple mobile menu toggle (can be expanded)
+        document.querySelector('.mobile-menu-btn')?.addEventListener('click', () => {
+            // Add mobile menu functionality here
+            alert('Mobile menu - coming soon!');
+        });
+
+        // Smooth scroll for navigation links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth' });
+                }
+            });
+        });
+    </script>
 </body>
 </html>
