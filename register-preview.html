@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Account - InternHub</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-card: rgba(255, 255, 255, 0.03);
+            --text-primary: #ffffff;
+            --text-secondary: rgba(255, 255, 255, 0.7);
+            --text-muted: rgba(255, 255, 255, 0.4);
+            --accent-primary: #6366f1;
+            --accent-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%);
+            --border-color: rgba(255, 255, 255, 0.08);
+        }
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+        .bg-gradient {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background:
+                radial-gradient(ellipse at 20% 20%, rgba(99, 102, 241, 0.15) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 80%, rgba(139, 92, 246, 0.1) 0%, transparent 50%);
+            z-index: -1;
+        }
+        .grid-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-image:
+                linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+            background-size: 60px 60px;
+            z-index: -1;
+        }
+        .register-container { width: 100%; max-width: 480px; }
+        .logo { text-align: center; margin-bottom: 2rem; }
+        .logo a {
+            font-size: 2rem;
+            font-weight: 800;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-decoration: none;
+        }
+        .register-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            padding: 2.5rem;
+            backdrop-filter: blur(20px);
+        }
+        .register-header { text-align: center; margin-bottom: 2rem; }
+        .register-header h1 { font-size: 1.75rem; font-weight: 700; margin-bottom: 0.5rem; }
+        .register-header p { color: var(--text-secondary); font-size: 0.95rem; }
+        .form-group { margin-bottom: 1.25rem; }
+        .form-label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+        .form-input {
+            width: 100%;
+            padding: 0.875rem 1rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            color: var(--text-primary);
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+        .form-input:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+        .form-input::placeholder { color: var(--text-muted); }
+        .form-hint { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.5rem; }
+        .role-cards {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.75rem;
+        }
+        .role-card {
+            padding: 1rem 0.5rem;
+            background: var(--bg-secondary);
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .role-card:hover { border-color: rgba(99, 102, 241, 0.3); }
+        .role-card.active {
+            border-color: var(--accent-primary);
+            background: rgba(99, 102, 241, 0.1);
+        }
+        .role-card i { font-size: 1.5rem; margin-bottom: 0.5rem; display: block; }
+        .role-card span { font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); }
+        .role-card.active span { color: var(--text-primary); }
+        .btn {
+            width: 100%;
+            padding: 1rem;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            border: none;
+            margin-top: 1rem;
+        }
+        .btn-primary {
+            background: var(--accent-gradient);
+            color: white;
+            box-shadow: 0 4px 20px rgba(99, 102, 241, 0.3);
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 30px rgba(99, 102, 241, 0.4);
+        }
+        .divider {
+            display: flex;
+            align-items: center;
+            margin: 1.5rem 0;
+            gap: 1rem;
+        }
+        .divider::before, .divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border-color);
+        }
+        .divider span { color: var(--text-muted); font-size: 0.85rem; }
+        .register-footer { text-align: center; }
+        .register-footer p { color: var(--text-secondary); font-size: 0.9rem; }
+        .register-footer a {
+            color: var(--accent-primary);
+            text-decoration: none;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-gradient"></div>
+    <div class="grid-overlay"></div>
+    <div class="register-container">
+        <div class="logo"><a href="#">InternHub</a></div>
+        <div class="register-card">
+            <div class="register-header">
+                <h1>Create your account</h1>
+                <p>Join thousands of students and companies</p>
+            </div>
+            <form>
+                <div class="form-group">
+                    <label class="form-label">Full Name</label>
+                    <input type="text" class="form-input" placeholder="John Doe">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Email Address</label>
+                    <input type="email" class="form-input" placeholder="you@example.com">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Password</label>
+                    <input type="password" class="form-input" placeholder="Create a strong password">
+                    <p class="form-hint">Minimum 6 characters</p>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">I am a...</label>
+                    <div class="role-cards">
+                        <div class="role-card active" onclick="this.classList.add('active'); this.parentElement.querySelectorAll('.role-card').forEach(c => c !== this && c.classList.remove('active'))">
+                            <i class="fas fa-graduation-cap"></i>
+                            <span>Student</span>
+                        </div>
+                        <div class="role-card" onclick="this.classList.add('active'); this.parentElement.querySelectorAll('.role-card').forEach(c => c !== this && c.classList.remove('active'))">
+                            <i class="fas fa-building"></i>
+                            <span>Company</span>
+                        </div>
+                        <div class="role-card" onclick="this.classList.add('active'); this.parentElement.querySelectorAll('.role-card').forEach(c => c !== this && c.classList.remove('active'))">
+                            <i class="fas fa-shield-alt"></i>
+                            <span>Admin</span>
+                        </div>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-primary">
+                    <i class="fas fa-rocket"></i> Create Account
+                </button>
+            </form>
+            <div class="divider"><span>Already registered?</span></div>
+            <div class="register-footer">
+                <p>Have an account? <a href="#">Sign in</a></p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
