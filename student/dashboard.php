@@ -1,368 +1,653 @@
 <?php
-session_start();
-if (empty($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'student') {
-    header('Location: ../auth/login.php');
-    exit;
-}
-include "../config/db.php";
-include "../config/gamification.php";
+/**
+ * Student Dashboard
+ * Internship Management System
+ */
 
-// Get internships
-$stmt = $conn->prepare(
-    'SELECT i.*, u.name as company_name FROM internships i JOIN users u ON i.company_id = u.id WHERE i.expiration_date >= CURDATE() ORDER BY i.created_at DESC'
-);
-$stmt->execute();
-$result = $stmt->get_result();
-$internships = $result->fetch_all(MYSQLI_ASSOC);
-$stmt->close();
+require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../includes/functions.php';
 
-// Get gamification data
-$gamification = new GamificationSystem($conn);
-$user_points = $gamification->getUserPoints($_SESSION['user_id']);
-$user_level = $gamification->getUserLevel($_SESSION['user_id']);
-$recent_achievements = array_slice($gamification->getUserAchievements($_SESSION['user_id']), 0, 3);
-$engagement_stats = $gamification->getEngagementStats($_SESSION['user_id']);
+require_login();
+require_role('student');
+
+// Get student profile
+$profile = db_fetch("SELECT * FROM student_profiles WHERE user_id = ?", [$_SESSION['user_id']]);
+
+// Get application statistics
+$stats = db_fetch("
+    SELECT
+        COUNT(*) as total,
+        SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
+        SUM(CASE WHEN status = 'reviewed' THEN 1 ELSE 0 END) as reviewed,
+        SUM(CASE WHEN status = 'shortlisted' THEN 1 ELSE 0 END) as shortlisted,
+        SUM(CASE WHEN status = 'accepted' THEN 1 ELSE 0 END) as accepted,
+        SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END) as rejected
+    FROM applications
+    WHERE student_id = ?
+", [$_SESSION['user_id']]);
+
+// Get available internships
+$internships = db_fetch_all("
+    SELECT i.*, cp.company_name, cp.logo_path, cp.industry, cp.location as company_location
+    FROM internships i
+    JOIN company_profiles cp ON i.company_id = cp.user_id
+    WHERE i.status = 'open'
+    AND (i.deadline IS NULL OR i.deadline >= CURDATE())
+    ORDER BY i.created_at DESC
+    LIMIT 6
+");
+
+// Get recent applications
+$recent_applications = db_fetch_all("
+    SELECT a.*, i.title as internship_title, cp.company_name
+    FROM applications a
+    JOIN internships i ON a.internship_id = i.id
+    JOIN company_profiles cp ON i.company_id = cp.user_id
+    WHERE a.student_id = ?
+    ORDER BY a.applied_at DESC
+    LIMIT 5
+", [$_SESSION['user_id']]);
+
+$page_title = 'Student Dashboard';
 ?>
-<?php include '../includes/mobile_header.php'; ?>
-    <title>Student Dashboard - Internship Hub</title>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><?php echo $page_title; ?> - InternHub</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
         :root {
-            --primary-color: #6366f1;
+            --primary: #6366f1;
             --primary-dark: #4f46e5;
-            --secondary-color: #f59e0b;
-            --success-color: #10b981;
-            --danger-color: #ef4444;
-            --dark-color: #1f2937;
-            --light-bg: #f9fafb;
-            --card-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-            --card-hover-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --secondary: #f59e0b;
+            --success: #22c55e;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --info: #3b82f6;
+            --gray: #6b7280;
+            --dark: #1f2937;
+            --light: #f3f4f6;
+            --white: #ffffff;
+            --border: #e5e7eb;
         }
-        
+
         body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Inter', sans-serif;
+            background: var(--light);
             min-height: 100vh;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
         }
-        
-        .main-container {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            margin: 20px auto;
-            max-width: 1200px;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+
+        /* Sidebar */
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 260px;
+            height: 100vh;
+            background: var(--dark);
+            color: var(--white);
+            padding: 1.5rem;
+            overflow-y: auto;
         }
-        
-        .header-section {
-            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
-            color: white;
-            padding: 2rem;
-            border-radius: 20px 20px 0 0;
-            position: relative;
-            overflow: hidden;
+
+        .sidebar-logo {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--white);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
         }
-        
-        .header-section::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            right: -10%;
-            width: 300px;
-            height: 300px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 50%;
+
+        .sidebar-logo i {
+            color: var(--primary);
         }
-        
-        .header-content {
-            position: relative;
-            z-index: 1;
+
+        .sidebar-nav {
+            list-style: none;
         }
-        
-        .header-title {
-            font-size: 2.5rem;
-            font-weight: 700;
+
+        .sidebar-nav li {
             margin-bottom: 0.5rem;
         }
-        
-        .header-subtitle {
-            font-size: 1.1rem;
-            opacity: 0.9;
-        }
-        
-        .nav-buttons {
+
+        .sidebar-nav a {
             display: flex;
-            gap: 1rem;
-            flex-wrap: wrap;
-            margin-top: 1.5rem;
-        }
-        
-        .btn-custom {
-            padding: 0.75rem 1.5rem;
-            border-radius: 12px;
-            font-weight: 600;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.875rem 1rem;
+            color: rgba(255,255,255,0.7);
             text-decoration: none;
-            transition: all 0.3s ease;
-            border: none;
+            border-radius: 10px;
+            transition: all 0.2s;
+        }
+
+        .sidebar-nav a:hover,
+        .sidebar-nav a.active {
+            background: var(--primary);
+            color: var(--white);
+        }
+
+        .sidebar-nav a i {
+            width: 20px;
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-left: 260px;
+            padding: 2rem;
+        }
+
+        /* Header */
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .page-title {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--dark);
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .user-avatar {
+            width: 45px;
+            height: 45px;
+            background: var(--primary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--white);
+            padding: 1.5rem;
+            border-radius: 16px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .stat-card .icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            margin-bottom: 1rem;
+        }
+
+        .stat-card .icon.primary { background: rgba(99,102,241,0.1); color: var(--primary); }
+        .stat-card .icon.success { background: rgba(34,197,94,0.1); color: var(--success); }
+        .stat-card .icon.warning { background: rgba(245,158,11,0.1); color: var(--warning); }
+        .stat-card .icon.info { background: rgba(59,130,246,0.1); color: var(--info); }
+
+        .stat-card .value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--dark);
+        }
+
+        .stat-card .label {
+            color: var(--gray);
+            font-size: 0.9rem;
+        }
+
+        /* Section */
+        .section {
+            margin-bottom: 2rem;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--dark);
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.875rem;
+            text-decoration: none;
             display: inline-flex;
             align-items: center;
             gap: 0.5rem;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
         }
-        
-        .btn-primary-custom {
-            background: white;
-            color: var(--primary-color);
-        }
-        
-        .btn-primary-custom:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(255, 255, 255, 0.3);
-            color: var(--primary-dark);
-        }
-        
-        .btn-secondary-custom {
-            background: rgba(255, 255, 255, 0.2);
+
+        .btn-primary {
+            background: var(--primary);
             color: white;
-            border: 1px solid rgba(255, 255, 255, 0.3);
         }
-        
-        .btn-secondary-custom:hover {
-            background: rgba(255, 255, 255, 0.3);
-            transform: translateY(-2px);
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
         }
-        
-        .content-section {
-            padding: 2rem;
+
+        .btn-outline {
+            background: transparent;
+            border: 2px solid var(--border);
+            color: var(--gray);
         }
-        
+
+        .btn-outline:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        /* Cards Grid */
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 1.5rem;
+        }
+
+        /* Internship Card */
         .internship-card {
-            background: white;
+            background: var(--white);
             border-radius: 16px;
             padding: 1.5rem;
-            box-shadow: var(--card-shadow);
-            transition: all 0.3s ease;
-            border: 1px solid #e5e7eb;
-            height: 100%;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            transition: all 0.2s;
         }
-        
+
         .internship-card:hover {
             transform: translateY(-4px);
-            box-shadow: var(--card-hover-shadow);
-            border-color: var(--primary-color);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
         }
-        
-        .card-title {
-            color: var(--dark-color);
-            font-size: 1.25rem;
-            font-weight: 700;
-            margin-bottom: 0.5rem;
-        }
-        
-        .card-company {
-            color: var(--secondary-color);
-            font-weight: 600;
+
+        .internship-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
             margin-bottom: 1rem;
         }
-        
-        .card-description {
-            color: #6b7280;
-            line-height: 1.6;
-            margin-bottom: 1rem;
-        }
-        
-        .card-duration {
-            color: var(--primary-color);
-            font-weight: 600;
-            margin-bottom: 1rem;
-        }
-        
-        .btn-apply {
-            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
-            color: white;
-            border: none;
-            padding: 0.75rem 1.5rem;
-            border-radius: 10px;
-            font-weight: 600;
-            transition: all 0.3s ease;
-        }
-        
-        .btn-apply:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
-        }
-        
-        .alert-custom {
-            background: linear-gradient(135deg, #fef3c7, #fde68a);
-            border: none;
+
+        .company-logo {
+            width: 50px;
+            height: 50px;
+            background: var(--primary);
             border-radius: 12px;
-            color: #92400e;
-            padding: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            font-size: 1.25rem;
         }
-        
-        .no-internships-icon {
-            font-size: 3rem;
-            color: var(--secondary-color);
+
+        .badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 100px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .badge-open { background: rgba(34,197,94,0.1); color: var(--success); }
+        .badge-remote { background: rgba(99,102,241,0.1); color: var(--primary); }
+        .badge-onsite { background: rgba(245,158,11,0.1); color: var(--warning); }
+        .badge-hybrid { background: rgba(59,130,246,0.1); color: var(--info); }
+
+        .internship-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--dark);
+            margin-bottom: 0.25rem;
+        }
+
+        .internship-company {
+            color: var(--gray);
+            font-size: 0.9rem;
             margin-bottom: 1rem;
+        }
+
+        .internship-meta {
+            display: flex;
+            gap: 1rem;
+            color: var(--gray);
+            font-size: 0.85rem;
+            margin-bottom: 1rem;
+        }
+
+        .internship-meta span {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        /* Applications Table */
+        .table-container {
+            background: var(--white);
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .table th,
+        .table td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .table th {
+            background: var(--light);
+            font-weight: 600;
+            color: var(--gray);
+            font-size: 0.85rem;
+            text-transform: uppercase;
+        }
+
+        .table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 100px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .status-pending { background: rgba(245,158,11,0.1); color: var(--warning); }
+        .status-reviewed { background: rgba(59,130,246,0.1); color: var(--info); }
+        .status-shortlisted { background: rgba(139,92,246,0.1); color: #8b5cf6; }
+        .status-accepted { background: rgba(34,197,94,0.1); color: var(--success); }
+        .status-rejected { background: rgba(239,68,68,0.1); color: var(--danger); }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: var(--gray);
+        }
+
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            color: var(--border);
+        }
+
+        /* Alert */
+        .alert {
+            padding: 1rem;
+            border-radius: 10px;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .alert-success {
+            background: rgba(34,197,94,0.1);
+            color: #15803d;
+        }
+
+        .alert-warning {
+            background: rgba(245,158,11,0.1);
+            color: #b45309;
+        }
+
+        /* Profile Completion */
+        .profile-completion {
+            background: var(--white);
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: var(--light);
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 1rem 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--primary);
+            border-radius: 4px;
+            transition: width 0.3s;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                display: none;
+            }
+            .main-content {
+                margin-left: 0;
+            }
         }
     </style>
 </head>
 <body>
-<div class="main-container">
-    <div class="header-section">
-        <div class="header-content">
-            <h1 class="header-title">Welcome, <?php echo htmlspecialchars($_SESSION['user_name'] ?? 'Student', ENT_QUOTES); ?> 👋</h1>
-            <p class="header-subtitle">Discover amazing internship opportunities and kickstart your career</p>
-            
-            <div class="nav-buttons">
-                <a href="dashboard.php" class="btn-custom btn-primary-custom">
-                    <i class="fas fa-search"></i> Browse Internships
-                </a>
-                <a href="my_applications.php" class="btn-custom btn-secondary-custom">
-                    <i class="fas fa-clipboard-list"></i> My Applications
-                </a>
-                <a href="profile.php" class="btn-custom btn-secondary-custom">
-                    <i class="fas fa-user"></i> My Profile
-                </a>
-                <a href="gamification.php" class="btn-custom btn-secondary-custom">
-                    <i class="fas fa-trophy"></i> Achievements
-                </a>
-                <a href="../messages.php" class="btn-custom btn-secondary-custom">
-                    <i class="fas fa-envelope"></i> Messages
-                </a>
-                <a href="../auth/setup_email_2fa.php" class="btn-custom btn-secondary-custom">
-                    <i class="fas fa-shield-alt"></i> 2FA Settings
-                </a>
-                <a href="../auth/logout.php" class="btn-custom btn-secondary-custom">
-                    <i class="fas fa-sign-out-alt"></i> Logout
-                </a>
-            </div>
-        </div>
-    </div>
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <a href="/index.php" class="sidebar-logo">
+            <i class="fas fa-briefcase"></i> InternHub
+        </a>
 
-    <div class="content-section">
-        <!-- Gamification Stats -->
-        <div class="row mb-4">
-            <div class="col-md-3 col-6 mb-3">
-                <div class="text-center p-3 bg-white rounded-3 shadow-sm">
-                    <i class="fas fa-trophy fa-2x text-warning mb-2"></i>
-                    <div class="h5 mb-1"><?php echo $user_points; ?></div>
-                    <small class="text-muted">Total Points</small>
-                </div>
-            </div>
-            <div class="col-md-3 col-6 mb-3">
-                <div class="text-center p-3 bg-white rounded-3 shadow-sm">
-                    <i class="fas fa-star fa-2x text-primary mb-2"></i>
-                    <div class="h5 mb-1">Level <?php echo $user_level['level']; ?></div>
-                    <small class="text-muted"><?php echo $user_level['title']; ?></small>
-                </div>
-            </div>
-            <div class="col-md-3 col-6 mb-3">
-                <div class="text-center p-3 bg-white rounded-3 shadow-sm">
-                    <i class="fas fa-paper-plane fa-2x text-success mb-2"></i>
-                    <div class="h5 mb-1"><?php echo $engagement_stats['applications']; ?></div>
-                    <small class="text-muted">Applications</small>
-                </div>
-            </div>
-            <div class="col-md-3 col-6 mb-3">
-                <div class="text-center p-3 bg-white rounded-3 shadow-sm">
-                    <i class="fas fa-medal fa-2x text-info mb-2"></i>
-                    <div class="h5 mb-1"><?php echo count($recent_achievements); ?></div>
-                    <small class="text-muted">Achievements</small>
+        <ul class="sidebar-nav">
+            <li><a href="/student/dashboard.php" class="active"><i class="fas fa-home"></i> Dashboard</a></li>
+            <li><a href="/student/browse.php"><i class="fas fa-search"></i> Browse Internships</a></li>
+            <li><a href="/student/applications.php"><i class="fas fa-clipboard-list"></i> My Applications</a></li>
+            <li><a href="/student/profile.php"><i class="fas fa-user"></i> My Profile</a></li>
+            <li><a href="/student/messages.php"><i class="fas fa-envelope"></i> Messages</a></li>
+            <li><a href="/auth/logout.php"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+        </ul>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="page-header">
+            <h1 class="page-title">Welcome back, <?php echo htmlspecialchars($_SESSION['user_name']); ?>!</h1>
+            <div class="user-info">
+                <div class="user-avatar">
+                    <?php echo strtoupper(substr($_SESSION['user_name'], 0, 1)); ?>
                 </div>
             </div>
         </div>
 
-        <!-- Recent Achievements -->
-        <?php if (!empty($recent_achievements)): ?>
-            <div class="alert alert-success border-0 mb-4" style="background: linear-gradient(135deg, #d1fae5, #a7f3d0);">
-                <div class="d-flex align-items-center">
-                    <i class="fas fa-trophy fa-2x me-3"></i>
-                    <div>
-                        <h6 class="mb-1">Recent Achievements</h6>
-                        <div class="small">
-                            <?php foreach ($recent_achievements as $achievement): ?>
-                                <span class="badge bg-<?php echo $achievement['badge_color']; ?> me-1">
-                                    <i class="fas fa-<?php echo $achievement['icon']; ?> me-1"></i>
-                                    <?php echo htmlspecialchars($achievement['name']); ?>
-                                </span>
+        <?php if ($flash = get_flash('success')): ?>
+            <div class="alert alert-success">
+                <i class="fas fa-check-circle"></i>
+                <?php echo $flash; ?>
+            </div>
+        <?php endif; ?>
+
+        <!-- Profile Completion Warning -->
+        <?php
+        $completion = 0;
+        if ($profile) {
+            if ($profile['university']) $completion += 20;
+            if ($profile['course']) $completion += 20;
+            if ($profile['skills']) $completion += 20;
+            if ($profile['bio']) $completion += 20;
+            if ($profile['resume_path']) $completion += 20;
+        }
+        if ($completion < 100):
+        ?>
+        <div class="profile-completion">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <strong>Complete Your Profile</strong>
+                    <p style="color: var(--gray); font-size: 0.9rem; margin-top: 0.25rem;">
+                        A complete profile increases your chances of getting selected
+                    </p>
+                </div>
+                <a href="/student/profile.php" class="btn btn-primary">
+                    <i class="fas fa-edit"></i> Update Profile
+                </a>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" style="width: <?php echo $completion; ?>%;"></div>
+            </div>
+            <span style="color: var(--gray); font-size: 0.85rem;"><?php echo $completion; ?>% complete</span>
+        </div>
+        <?php endif; ?>
+
+        <!-- Stats -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="icon primary"><i class="fas fa-paper-plane"></i></div>
+                <div class="value"><?php echo $stats['total'] ?? 0; ?></div>
+                <div class="label">Total Applications</div>
+            </div>
+            <div class="stat-card">
+                <div class="icon warning"><i class="fas fa-clock"></i></div>
+                <div class="value"><?php echo $stats['pending'] ?? 0; ?></div>
+                <div class="label">Pending Review</div>
+            </div>
+            <div class="stat-card">
+                <div class="icon info"><i class="fas fa-star"></i></div>
+                <div class="value"><?php echo $stats['shortlisted'] ?? 0; ?></div>
+                <div class="label">Shortlisted</div>
+            </div>
+            <div class="stat-card">
+                <div class="icon success"><i class="fas fa-check-circle"></i></div>
+                <div class="value"><?php echo $stats['accepted'] ?? 0; ?></div>
+                <div class="label">Accepted</div>
+            </div>
+        </div>
+
+        <!-- Recent Applications -->
+        <div class="section">
+            <div class="section-header">
+                <h2 class="section-title">Recent Applications</h2>
+                <a href="/student/applications.php" class="btn btn-outline">View All</a>
+            </div>
+
+            <?php if (empty($recent_applications)): ?>
+                <div class="table-container">
+                    <div class="empty-state">
+                        <i class="fas fa-clipboard-list"></i>
+                        <h3>No applications yet</h3>
+                        <p>Start applying to internships to see them here</p>
+                    </div>
+                </div>
+            <?php else: ?>
+                <div class="table-container">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Position</th>
+                                <th>Company</th>
+                                <th>Applied</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($recent_applications as $app): ?>
+                                <tr>
+                                    <td><strong><?php echo htmlspecialchars($app['internship_title']); ?></strong></td>
+                                    <td><?php echo htmlspecialchars($app['company_name']); ?></td>
+                                    <td><?php echo format_date($app['applied_at']); ?></td>
+                                    <td>
+                                        <span class="status-badge status-<?php echo $app['status']; ?>">
+                                            <?php echo ucfirst($app['status']); ?>
+                                        </span>
+                                    </td>
+                                </tr>
                             <?php endforeach; ?>
-                        </div>
+                        </tbody>
+                    </table>
+                </div>
+            <?php endif; ?>
+        </div>
+
+        <!-- Available Internships -->
+        <div class="section">
+            <div class="section-header">
+                <h2 class="section-title">Available Internships</h2>
+                <a href="/student/browse.php" class="btn btn-outline">Browse All</a>
+            </div>
+
+            <?php if (empty($internships)): ?>
+                <div class="table-container">
+                    <div class="empty-state">
+                        <i class="fas fa-briefcase"></i>
+                        <h3>No internships available</h3>
+                        <p>Check back later for new opportunities</p>
                     </div>
                 </div>
-                <div class="mt-2">
-                    <a href="gamification.php" class="btn btn-sm btn-outline-success">
-                        <i class="fas fa-chart-line me-1"></i>View All Progress
-                    </a>
-                </div>
-            </div>
-        <?php endif; ?>
-
-        <?php if (empty($internships)): ?>
-            <div class="alert-custom text-center">
-                <div class="no-internships-icon">
-                    <i class="fas fa-briefcase"></i>
-                </div>
-                <h4>No internships available yet</h4>
-                <p class="mb-3">Check back later for new opportunities from top companies!</p>
-                <div class="d-flex justify-content-center gap-2">
-                    <button class="btn-apply" onclick="window.location.reload()">
-                        <i class="fas fa-sync-alt"></i> Refresh
-                    </button>
-                </div>
-            </div>
-        <?php else: ?>
-            <div class="row g-4">
-                <?php foreach ($internships as $internship): ?>
-                    <div class="col-md-6">
+            <?php else: ?>
+                <div class="cards-grid">
+                    <?php foreach ($internships as $internship): ?>
                         <div class="internship-card">
-                            <div class="d-flex justify-content-between align-items-center mb-3">
-                                <div>
-                                    <h5 class="card-title"><?php echo htmlspecialchars($internship['title'], ENT_QUOTES); ?></h5>
-                                    <div class="card-company">
-                                        <i class="fas fa-building"></i> <?php echo htmlspecialchars($internship['company_name'], ENT_QUOTES); ?>
-                                    </div>
+                            <div class="internship-header">
+                                <div class="company-logo">
+                                    <?php echo strtoupper(substr($internship['company_name'], 0, 1)); ?>
                                 </div>
-                                <div class="d-flex flex-column align-items-end gap-2">
-                                    <div class="badge bg-<?php 
-                                        echo (new DateTime($internship['expiration_date']) < new DateTime()) ? 'danger' : 'success'; 
-                                    ?>">
-                                        <i class="fas fa-<?php 
-                                            echo (new DateTime($internship['expiration_date']) < new DateTime()) ? 'times-circle' : 'check-circle'; 
-                                        ?>"></i> 
-                                        <?php 
-                                            if (new DateTime($internship['expiration_date']) < new DateTime()) {
-                                                echo 'Expired';
-                                            } else {
-                                                $days_left = (new DateTime($internship['expiration_date']))->diff(new DateTime())->days;
-                                                echo $days_left . ' days left';
-                                            }
-                                        ?>
-                                    </div>
-                                    <small class="text-muted">
-                                        <i class="fas fa-calendar-alt"></i> 
-                                        Expires: <?php echo date('M j, Y', strtotime($internship['expiration_date'])); ?>
-                                    </small>
-                                </div>
+                                <span class="badge badge-<?php echo $internship['type']; ?>">
+                                    <?php echo ucfirst($internship['type']); ?>
+                                </span>
                             </div>
-                            
-                            <p class="card-description"><?php echo htmlspecialchars($internship['description'], ENT_QUOTES); ?></p>
-                            
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div class="card-duration">
-                                    <i class="fas fa-calendar-alt"></i> <?php echo htmlspecialchars($internship['duration'], ENT_QUOTES); ?>
-                                </div>
-                                <a href="apply.php?id=<?php echo urlencode($internship['id']); ?>" 
-                                   class="btn-apply <?php echo (new DateTime($internship['expiration_date']) < new DateTime()) ? 'disabled' : ''; ?>"
-                                   <?php echo (new DateTime($internship['expiration_date']) < new DateTime()) ? 'style="pointer-events: none; opacity: 0.6;"' : ''; ?>>
-                                    <i class="fas fa-paper-plane"></i> 
-                                    <?php echo (new DateTime($internship['expiration_date']) < new DateTime()) ? 'Expired' : 'Apply Now'; ?>
-                                </a>
+                            <h3 class="internship-title"><?php echo htmlspecialchars($internship['title']); ?></h3>
+                            <p class="internship-company">
+                                <i class="fas fa-building"></i> <?php echo htmlspecialchars($internship['company_name']); ?>
+                            </p>
+                            <div class="internship-meta">
+                                <span><i class="fas fa-map-marker-alt"></i> <?php echo htmlspecialchars($internship['location'] ?? 'Remote'); ?></span>
+                                <span><i class="fas fa-clock"></i> <?php echo htmlspecialchars($internship['duration'] ?? 'Flexible'); ?></span>
                             </div>
+                            <?php if ($internship['stipend']): ?>
+                                <div class="internship-meta">
+                                    <span><i class="fas fa-dollar-sign"></i> <?php echo htmlspecialchars($internship['stipend']); ?></span>
+                                </div>
+                            <?php endif; ?>
+                            <a href="/student/apply.php?id=<?php echo $internship['id']; ?>" class="btn btn-primary" style="width: 100%; justify-content: center; margin-top: 1rem;">
+                                <i class="fas fa-paper-plane"></i> Apply Now
+                            </a>
                         </div>
-                    </div>
-                <?php endforeach; ?>
-            </div>
-        <?php endif; ?>
-    </div>
-</div>
-
-<?php include '../includes/mobile_footer.php'; ?>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
+        </div>
+    </main>
+</body>
+</html>

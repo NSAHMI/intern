@@ -1,344 +1,445 @@
 <?php
-session_start();
-if (empty($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'student') {
-    header('Location: ../auth/login.php');
-    exit;
-}
-include "../config/db.php";
-include "../config/email.php";
-include "../config/gamification.php";
+/**
+ * Apply for Internship
+ * Internship Management System
+ */
+
+require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../includes/functions.php';
+
+require_login();
+require_role('student');
 
 $internship_id = $_GET['id'] ?? '';
 $error = '';
 $success = '';
 
 // Get internship details
-$stmt = $conn->prepare(
-    'SELECT i.id, i.title, i.description, i.duration, u.name AS company_name
-     FROM internships i
-     JOIN users u ON i.company_id = u.id
-     WHERE i.id = ?'
-);
-$stmt->bind_param('i', $internship_id);
-$stmt->execute();
-$result = $stmt->get_result();
-$internship = $result->fetch_assoc();
-$stmt->close();
+$internship = db_fetch("
+    SELECT i.*, cp.company_name, cp.industry, cp.location as company_location
+    FROM internships i
+    JOIN company_profiles cp ON i.company_id = cp.user_id
+    WHERE i.id = ? AND i.status = 'open'
+", [$internship_id]);
 
 if (!$internship) {
-    $error = 'Internship not found.';
+    $error = 'Internship not found or is no longer available.';
 }
 
 // Check if already applied
 if ($internship && empty($error)) {
-    $stmt = $conn->prepare(
-        'SELECT id FROM applications WHERE internship_id = ? AND student_id = ?'
+    $existing = db_fetch(
+        "SELECT id FROM applications WHERE internship_id = ? AND student_id = ?",
+        [$internship_id, $_SESSION['user_id']]
     );
-    $stmt->bind_param('ii', $internship_id, $_SESSION['user_id']);
-    $stmt->execute();
-    $stmt->store_result();
-    
-    if ($stmt->num_rows > 0) {
+    if ($existing) {
         $error = 'You have already applied for this internship.';
     }
-    $stmt->close();
 }
 
 // Handle application submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $internship && empty($error)) {
     $cover_letter = trim($_POST['cover_letter'] ?? '');
-    
-    if ($cover_letter === '') {
+
+    if (empty($cover_letter)) {
         $error = 'Please provide a cover letter.';
     } else {
-        // Start transaction
-        $conn->begin_transaction();
-        
-        try {
-            // Insert application
-            $stmt = $conn->prepare(
-                'INSERT INTO applications (internship_id, student_id, cover_letter) VALUES (?, ?, ?)'
-            );
-            $stmt->bind_param('iis', $internship_id, $_SESSION['user_id'], $cover_letter);
-            $stmt->execute();
-            $stmt->close();
-            
-            // Get student email and name
-            $stmt = $conn->prepare('SELECT name, email FROM users WHERE id = ?');
-            $stmt->bind_param('i', $_SESSION['user_id']);
-            $stmt->execute();
-            $student = $stmt->get_result()->fetch_assoc();
-            $stmt->close();
-            
-            // Send email notification
-            $email = new EmailNotification($conn);
-            $email_sent = $email->sendApplicationReceived(
-                $student['email'],
-                $student['name'],
-                $internship['title'],
-                $internship['company_name']
-            );
-            
-            // Check for gamification achievements
-            $gamification = new GamificationSystem($conn);
-            $new_achievements = $gamification->checkAchievements($_SESSION['user_id']);
-            
-            // Log activity
-            $stmt = $conn->prepare('INSERT INTO user_activity (user_id, activity_type, resource_type, resource_id) VALUES (?, "apply", "internship", ?)');
-            $stmt->bind_param('ii', $_SESSION['user_id'], $internship_id);
-            $stmt->execute();
-            $stmt->close();
-            
-            $conn->commit();
-            
-            $success = 'Application submitted successfully! A confirmation email has been sent to your registered email address.';
-            if (!empty($new_achievements)) {
-                $success .= ' 🎉 You earned new achievements!';
-            }
-            
-        } catch (Exception $e) {
-            $conn->rollback();
-            $error = 'Unable to submit application. Please try again.';
-        }
+        // Insert application
+        db_query(
+            "INSERT INTO applications (student_id, internship_id, cover_letter, status) VALUES (?, ?, ?, 'pending')",
+            [$_SESSION['user_id'], $internship_id, $cover_letter]
+        );
+
+        // Create notification for company
+        $notification_msg = $_SESSION['user_name'] . ' has applied for ' . $internship['title'];
+        db_query(
+            "INSERT INTO notifications (user_id, title, message, type, link) VALUES (?, ?, ?, 'application', ?)",
+            [$internship['company_id'], 'New Application', $notification_msg, '/company/applications.php']
+        );
+
+        set_flash('success', 'Your application has been submitted successfully!');
+        redirect('/student/applications.php');
     }
 }
+
+$page_title = 'Apply for Internship';
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Apply for Internship</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><?php echo $page_title; ?> - InternHub</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
         :root {
-            --primary-color: #6366f1;
+            --primary: #6366f1;
             --primary-dark: #4f46e5;
-            --secondary-color: #f59e0b;
-            --success-color: #10b981;
-            --danger-color: #ef4444;
-            --dark-color: #1f2937;
-            --light-bg: #f9fafb;
-            --card-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-            --card-hover-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --success: #22c55e;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --gray: #6b7280;
+            --dark: #1f2937;
+            --light: #f3f4f6;
+            --white: #ffffff;
+            --border: #e5e7eb;
         }
-        
+
         body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Inter', sans-serif;
+            background: var(--light);
             min-height: 100vh;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
         }
-        
-        .main-container {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            margin: 20px auto;
-            max-width: 1200px;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+
+        /* Sidebar */
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 260px;
+            height: 100vh;
+            background: var(--dark);
+            color: var(--white);
+            padding: 1.5rem;
+            overflow-y: auto;
         }
-        
-        .header-section {
-            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
-            color: white;
+
+        .sidebar-logo {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--white);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .sidebar-logo i { color: var(--primary); }
+
+        .sidebar-nav { list-style: none; }
+        .sidebar-nav li { margin-bottom: 0.5rem; }
+        .sidebar-nav a {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.875rem 1rem;
+            color: rgba(255,255,255,0.7);
+            text-decoration: none;
+            border-radius: 10px;
+            transition: all 0.2s;
+        }
+        .sidebar-nav a:hover, .sidebar-nav a.active {
+            background: var(--primary);
+            color: var(--white);
+        }
+        .sidebar-nav a i { width: 20px; }
+
+        /* Main Content */
+        .main-content {
+            margin-left: 260px;
             padding: 2rem;
-            border-radius: 20px 20px 0 0;
-            position: relative;
-            overflow: hidden;
         }
-        
-        .header-section::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            right: -10%;
-            width: 300px;
-            height: 300px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 50%;
+
+        .page-header {
+            margin-bottom: 2rem;
         }
-        
-        .header-content {
-            position: relative;
-            z-index: 1;
-        }
-        
-        .header-title {
-            font-size: 2.5rem;
+
+        .page-title {
+            font-size: 1.75rem;
             font-weight: 700;
+            color: var(--dark);
             margin-bottom: 0.5rem;
         }
-        
-        .header-subtitle {
-            font-size: 1.1rem;
-            opacity: 0.9;
-        }
-        
-        .nav-buttons {
+
+        .breadcrumb {
             display: flex;
-            gap: 1rem;
-            flex-wrap: wrap;
-            margin-top: 1.5rem;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--gray);
+            font-size: 0.9rem;
         }
-        
-        .btn-custom {
-            padding: 0.75rem 1.5rem;
-            border-radius: 12px;
-            font-weight: 600;
+
+        .breadcrumb a {
+            color: var(--primary);
             text-decoration: none;
-            transition: all 0.3s ease;
-            border: none;
-            display: inline-flex;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--white);
+            border-radius: 16px;
+            padding: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 1.5rem;
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--dark);
+            margin-bottom: 0.5rem;
+        }
+
+        .card-company {
+            color: var(--gray);
+            font-size: 0.95rem;
+            margin-bottom: 1rem;
+            display: flex;
             align-items: center;
             gap: 0.5rem;
         }
-        
-        .btn-primary-custom {
-            background: white;
-            color: var(--primary-color);
+
+        .card-description {
+            color: var(--gray);
+            line-height: 1.6;
+            margin-bottom: 1.5rem;
         }
-        
-        .btn-primary-custom:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(255, 255, 255, 0.3);
-            color: var(--primary-dark);
+
+        .card-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-bottom: 1rem;
         }
-        
-        .btn-secondary-custom {
-            background: rgba(255, 255, 255, 0.2);
-            color: white;
-            border: 1px solid rgba(255, 255, 255, 0.3);
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: var(--light);
+            border-radius: 8px;
+            font-size: 0.9rem;
+            color: var(--dark);
         }
-        
-        .btn-secondary-custom:hover {
-            background: rgba(255, 255, 255, 0.3);
-            transform: translateY(-2px);
+
+        .meta-item i { color: var(--primary); }
+
+        /* Form */
+        .form-group { margin-bottom: 1.5rem; }
+        .form-label {
+            display: block;
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+            color: var(--dark);
         }
-        
-        .content-section {
-            padding: 2rem;
-        }
-        
-        .form-control, .form-select {
+        .form-control {
+            width: 100%;
+            padding: 0.875rem 1rem;
+            border: 2px solid var(--border);
             border-radius: 10px;
-            border: 1px solid #e5e7eb;
-            padding: 0.75rem 1rem;
-            transition: all 0.3s ease;
+            font-size: 1rem;
+            font-family: inherit;
+            transition: all 0.2s;
         }
-        
-        .form-control:focus, .form-select:focus {
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99,102,241,0.1);
         }
-        
-        .btn-apply {
-            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
-            color: white;
-            border: none;
-            padding: 0.75rem 1.5rem;
+        textarea.form-control { resize: vertical; min-height: 200px; }
+        .form-hint {
+            font-size: 0.85rem;
+            color: var(--gray);
+            margin-top: 0.5rem;
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 0.875rem 1.5rem;
             border-radius: 10px;
             font-weight: 600;
-            transition: all 0.3s ease;
+            font-size: 1rem;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
         }
-        
-        .btn-apply:hover {
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+        .btn-primary:hover {
+            background: var(--primary-dark);
             transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+        }
+        .btn-outline {
+            background: transparent;
+            border: 2px solid var(--border);
+            color: var(--gray);
+        }
+        .btn-outline:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+        .btn-group {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        /* Alert */
+        .alert {
+            padding: 1rem 1.25rem;
+            border-radius: 10px;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        .alert-danger {
+            background: rgba(239,68,68,0.1);
+            color: #b91c1c;
+        }
+        .alert-success {
+            background: rgba(34,197,94,0.1);
+            color: #15803d;
+        }
+
+        /* Badge */
+        .badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 100px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .badge-open { background: rgba(34,197,94,0.1); color: var(--success); }
+        .badge-remote { background: rgba(99,102,241,0.1); color: var(--primary); }
+
+        @media (max-width: 768px) {
+            .sidebar { display: none; }
+            .main-content { margin-left: 0; }
         }
     </style>
 </head>
 <body>
-<div class="main-container">
-    <div class="header-section">
-        <div class="header-content">
-            <h1 class="header-title">Apply for Internship 📝</h1>
-            <p class="header-subtitle">Submit your application and take the next step in your career</p>
-            
-            <div class="nav-buttons">
-                <a href="dashboard.php" class="btn-custom btn-primary-custom">
-                    <i class="fas fa-arrow-left"></i> Back to Dashboard
-                </a>
-                <a href="../auth/logout.php" class="btn-custom btn-secondary-custom">
-                    <i class="fas fa-sign-out-alt"></i> Logout
-                </a>
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <a href="/index.php" class="sidebar-logo">
+            <i class="fas fa-briefcase"></i> InternHub
+        </a>
+        <ul class="sidebar-nav">
+            <li><a href="/student/dashboard.php"><i class="fas fa-home"></i> Dashboard</a></li>
+            <li><a href="/student/browse.php"><i class="fas fa-search"></i> Browse Internships</a></li>
+            <li><a href="/student/applications.php"><i class="fas fa-clipboard-list"></i> My Applications</a></li>
+            <li><a href="/student/profile.php"><i class="fas fa-user"></i> My Profile</a></li>
+            <li><a href="/student/messages.php"><i class="fas fa-envelope"></i> Messages</a></li>
+            <li><a href="/auth/logout.php"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+        </ul>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="page-header">
+            <h1 class="page-title">Apply for Internship</h1>
+            <div class="breadcrumb">
+                <a href="/student/dashboard.php">Dashboard</a>
+                <i class="fas fa-chevron-right"></i>
+                <a href="/student/browse.php">Browse</a>
+                <i class="fas fa-chevron-right"></i>
+                <span>Apply</span>
             </div>
         </div>
-    </div>
 
-    <div class="content-section">
-        <div class="row justify-content-center">
-            <div class="col-md-8">
-                <?php if ($error): ?>
-                    <div class="alert alert-danger border-0 mb-4" style="background: linear-gradient(135deg, #fee2e2, #fecaca);">
-                        <i class="fas fa-exclamation-triangle me-2"></i>
-                        <?php echo htmlspecialchars($error, ENT_QUOTES); ?>
+        <?php if ($error): ?>
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-circle"></i>
+                <?php echo htmlspecialchars($error); ?>
+            </div>
+            <a href="/student/browse.php" class="btn btn-outline">
+                <i class="fas fa-arrow-left"></i> Back to Browse
+            </a>
+        <?php elseif ($internship): ?>
+            <!-- Internship Details -->
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: start; flex-wrap: wrap; gap: 1rem;">
+                    <div>
+                        <h2 class="card-title"><?php echo htmlspecialchars($internship['title']); ?></h2>
+                        <p class="card-company">
+                            <i class="fas fa-building"></i>
+                            <?php echo htmlspecialchars($internship['company_name']); ?>
+                            <?php if ($internship['industry']): ?>
+                                <span style="color: var(--border);">|</span>
+                                <?php echo htmlspecialchars($internship['industry']); ?>
+                            <?php endif; ?>
+                        </p>
                     </div>
+                    <span class="badge badge-open"><i class="fas fa-check-circle"></i> Open</span>
+                </div>
+
+                <div class="card-meta">
+                    <div class="meta-item">
+                        <i class="fas fa-map-marker-alt"></i>
+                        <?php echo htmlspecialchars($internship['location'] ?? 'Remote'); ?>
+                    </div>
+                    <div class="meta-item">
+                        <i class="fas fa-clock"></i>
+                        <?php echo htmlspecialchars($internship['duration'] ?? 'Flexible'); ?>
+                    </div>
+                    <div class="meta-item">
+                        <i class="fas fa-laptop-house"></i>
+                        <?php echo ucfirst($internship['type']); ?>
+                    </div>
+                    <?php if ($internship['stipend']): ?>
+                        <div class="meta-item">
+                            <i class="fas fa-dollar-sign"></i>
+                            <?php echo htmlspecialchars($internship['stipend']); ?>
+                        </div>
+                    <?php endif; ?>
+                </div>
+
+                <p class="card-description"><?php echo nl2br(htmlspecialchars($internship['description'])); ?></p>
+
+                <?php if ($internship['requirements']): ?>
+                    <h4 style="font-weight: 600; margin-bottom: 0.5rem;">Requirements</h4>
+                    <p class="card-description"><?php echo nl2br(htmlspecialchars($internship['requirements'])); ?></p>
                 <?php endif; ?>
 
-                <?php if ($success): ?>
-                    <div class="alert alert-success border-0 mb-4" style="background: linear-gradient(135deg, #d1fae5, #a7f3d0);">
-                        <i class="fas fa-check-circle me-2"></i>
-                        <?php echo htmlspecialchars($success, ENT_QUOTES); ?>
-                        <div class="mt-3">
-                            <a href="dashboard.php" class="btn-apply">
-                                <i class="fas fa-tachometer-alt me-2"></i>Back to Dashboard
-                            </a>
-                        </div>
-                    </div>
-                <?php endif; ?>
-
-                <?php if ($internship && empty($success)): ?>
-                    <div class="card border-0 shadow-sm mb-4">
-                        <div class="card-header bg-white border-0 pt-4">
-                            <h4 class="mb-2">
-                                <i class="fas fa-briefcase text-primary me-2"></i>
-                                <?php echo htmlspecialchars($internship['title'], ENT_QUOTES); ?>
-                            </h4>
-                            <div class="text-secondary">
-                                <i class="fas fa-building me-1"></i> <?php echo htmlspecialchars($internship['company_name'], ENT_QUOTES); ?>
-                            </div>
-                        </div>
-                        <div class="card-body">
-                            <p class="mb-3"><?php echo htmlspecialchars($internship['description'], ENT_QUOTES); ?></p>
-                            <div class="d-flex align-items-center">
-                                <span class="badge bg-primary">
-                                    <i class="fas fa-clock me-1"></i> <?php echo htmlspecialchars($internship['duration'], ENT_QUOTES); ?>
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-header bg-white border-0 pt-4">
-                            <h5 class="mb-0">
-                                <i class="fas fa-paper-plane text-success me-2"></i>Submit Your Application
-                            </h5>
-                        </div>
-                        <div class="card-body">
-                            <form method="post" action="apply.php?id=<?php echo urlencode($internship_id); ?>">
-                                <div class="mb-4">
-                                    <label class="form-label fw-semibold">
-                                        <i class="fas fa-file-alt me-2"></i>Cover Letter
-                                    </label>
-                                    <textarea name="cover_letter" class="form-control" rows="8" 
-                                              placeholder="Tell us why you're interested in this internship and why you'd be a good fit..." required></textarea>
-                                    <div class="form-text">Explain your qualifications, experience, and interest in this position.</div>
-                                </div>
-                                <div class="d-flex gap-2">
-                                    <button type="submit" class="btn-apply">
-                                        <i class="fas fa-paper-plane me-2"></i>Submit Application
-                                    </button>
-                                    <a href="dashboard.php" class="btn btn-outline-secondary">
-                                        <i class="fas fa-times me-2"></i>Cancel
-                                    </a>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
+                <?php if ($internship['responsibilities']): ?>
+                    <h4 style="font-weight: 600; margin-bottom: 0.5rem;">Responsibilities</h4>
+                    <p class="card-description"><?php echo nl2br(htmlspecialchars($internship['responsibilities'])); ?></p>
                 <?php endif; ?>
             </div>
-        </div>
-    </div>
-</div>
+
+            <!-- Application Form -->
+            <div class="card">
+                <h3 style="font-weight: 700; margin-bottom: 1.5rem;">
+                    <i class="fas fa-paper-plane" style="color: var(--primary);"></i> Submit Your Application
+                </h3>
+
+                <form method="POST" action="">
+                    <div class="form-group">
+                        <label class="form-label">Cover Letter</label>
+                        <textarea name="cover_letter" class="form-control"
+                                  placeholder="Tell us why you're interested in this internship and why you'd be a good fit..."
+                                  required><?php echo htmlspecialchars($_POST['cover_letter'] ?? ''); ?></textarea>
+                        <p class="form-hint">
+                            Explain your qualifications, relevant experience, and interest in this position.
+                            A good cover letter can significantly increase your chances.
+                        </p>
+                    </div>
+
+                    <div class="btn-group">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-paper-plane"></i> Submit Application
+                        </button>
+                        <a href="/student/browse.php" class="btn btn-outline">
+                            <i class="fas fa-times"></i> Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        <?php endif; ?>
+    </main>
 </body>
 </html>

@@ -1,360 +1,537 @@
 <?php
-session_start();
-// Bypass authentication for direct admin access
-if (empty($_SESSION['user_id'])) {
-    // Auto-login as admin if not logged in
-    $_SESSION['user_id'] = 1;
-    $_SESSION['user_name'] = 'Admin User';
-    $_SESSION['role'] = 'admin';
-} elseif (($_SESSION['role'] ?? '') !== 'admin') {
-    // If logged in but not admin, upgrade to admin
-    $_SESSION['role'] = 'admin';
-}
-include "../config/db.php";
+/**
+ * Admin Dashboard
+ * Internship Management System
+ */
+
+require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../includes/functions.php';
+
+require_login();
+require_role('admin');
 
 // Get statistics
-$stmt = $conn->prepare('SELECT COUNT(*) as count FROM users WHERE role = ?');
-$stmt->bind_param('s', $role);
-
-$role = 'student';
-$stmt->execute();
-$result = $stmt->get_result();
-$student_count = $result->fetch_assoc()['count'];
-
-$role = 'company';
-$stmt->execute();
-$result = $stmt->get_result();
-$company_count = $result->fetch_assoc()['count'];
-
-$stmt->close();
-
-// Get total internships and applications
-$stmt = $conn->prepare('SELECT COUNT(*) as count FROM internships');
-$stmt->execute();
-$result = $stmt->get_result();
-$internship_count = $result->fetch_assoc()['count'];
-$stmt->close();
-
-$stmt = $conn->prepare('SELECT COUNT(*) as count FROM applications');
-$stmt->execute();
-$result = $stmt->get_result();
-$application_count = $result->fetch_assoc()['count'];
-$stmt->close();
+$stats = db_fetch("
+    SELECT
+        (SELECT COUNT(*) FROM users WHERE role = 'student') as students,
+        (SELECT COUNT(*) FROM users WHERE role = 'company') as companies,
+        (SELECT COUNT(*) FROM internships) as internships,
+        (SELECT COUNT(*) FROM applications) as applications,
+        (SELECT COUNT(*) FROM applications WHERE status = 'pending') as pending_apps,
+        (SELECT COUNT(*) FROM applications WHERE status = 'accepted') as accepted_apps
+");
 
 // Get recent users
-$stmt = $conn->prepare(
-    'SELECT id, name, email, role, created_at
-     FROM users
-     ORDER BY created_at DESC
-     LIMIT 10'
-);
-$stmt->execute();
-$result = $stmt->get_result();
-$recent_users = $result->fetch_all(MYSQLI_ASSOC);
-$stmt->close();
+$recent_users = db_fetch_all("
+    SELECT id, name, email, role, created_at, is_active
+    FROM users
+    ORDER BY created_at DESC
+    LIMIT 10
+");
 
 // Get recent internships
-$stmt = $conn->prepare(
-    'SELECT i.id, i.title, u.name AS company_name, i.created_at
-     FROM internships i
-     JOIN users u ON i.company_id = u.id
-     ORDER BY i.created_at DESC
-     LIMIT 10'
-);
-$stmt->execute();
-$result = $stmt->get_result();
-$recent_internships = $result->fetch_all(MYSQLI_ASSOC);
-$stmt->close();
+$recent_internships = db_fetch_all("
+    SELECT i.*, cp.company_name
+    FROM internships i
+    JOIN company_profiles cp ON i.company_id = cp.user_id
+    ORDER BY i.created_at DESC
+    LIMIT 10
+");
+
+// Get recent applications
+$recent_applications = db_fetch_all("
+    SELECT a.*, i.title as internship_title, u.name as student_name, cp.company_name
+    FROM applications a
+    JOIN internships i ON a.internship_id = i.id
+    JOIN users u ON a.student_id = u.id
+    JOIN company_profiles cp ON i.company_id = cp.user_id
+    ORDER BY a.applied_at DESC
+    LIMIT 10
+");
+
+$page_title = 'Admin Dashboard';
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Admin Dashboard</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><?php echo $page_title; ?> - InternHub</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
         :root {
-            --primary-color: #6366f1;
+            --primary: #6366f1;
             --primary-dark: #4f46e5;
-            --secondary-color: #f59e0b;
-            --success-color: #10b981;
-            --danger-color: #ef4444;
-            --dark-color: #1f2937;
-            --light-bg: #f9fafb;
-            --card-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-            --card-hover-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --success: #22c55e;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --info: #3b82f6;
+            --gray: #6b7280;
+            --dark: #1f2937;
+            --light: #f3f4f6;
+            --white: #ffffff;
+            --border: #e5e7eb;
         }
-        
+
         body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Inter', sans-serif;
+            background: var(--light);
             min-height: 100vh;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
         }
-        
-        .main-container {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            margin: 20px auto;
-            max-width: 1200px;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 260px;
+            height: 100vh;
+            background: var(--dark);
+            color: var(--white);
+            padding: 1.5rem;
+            overflow-y: auto;
         }
-        
-        .header-section {
-            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
-            color: white;
-            padding: 2rem;
-            border-radius: 20px 20px 0 0;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .header-section::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            right: -10%;
-            width: 300px;
-            height: 300px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 50%;
-        }
-        
-        .header-content {
-            position: relative;
-            z-index: 1;
-        }
-        
-        .header-title {
-            font-size: 2.5rem;
-            font-weight: 700;
-            margin-bottom: 0.5rem;
-        }
-        
-        .header-subtitle {
-            font-size: 1.1rem;
-            opacity: 0.9;
-        }
-        
-        .nav-buttons {
-            display: flex;
-            gap: 1rem;
-            flex-wrap: wrap;
-            margin-top: 1.5rem;
-        }
-        
-        .btn-custom {
-            padding: 0.75rem 1.5rem;
-            border-radius: 12px;
-            font-weight: 600;
+
+        .sidebar-logo {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--white);
             text-decoration: none;
-            transition: all 0.3s ease;
-            border: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .sidebar-logo i { color: var(--primary); }
+
+        .sidebar-nav { list-style: none; }
+        .sidebar-nav li { margin-bottom: 0.5rem; }
+        .sidebar-nav a {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.875rem 1rem;
+            color: rgba(255,255,255,0.7);
+            text-decoration: none;
+            border-radius: 10px;
+            transition: all 0.2s;
+        }
+        .sidebar-nav a:hover, .sidebar-nav a.active {
+            background: var(--primary);
+            color: var(--white);
+        }
+        .sidebar-nav a i { width: 20px; }
+
+        .main-content {
+            margin-left: 260px;
+            padding: 2rem;
+        }
+
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .page-title {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--dark);
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--white);
+            padding: 1.5rem;
+            border-radius: 16px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .stat-card .icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            margin-bottom: 1rem;
+        }
+
+        .stat-card .icon.primary { background: rgba(99,102,241,0.1); color: var(--primary); }
+        .stat-card .icon.success { background: rgba(34,197,94,0.1); color: var(--success); }
+        .stat-card .icon.warning { background: rgba(245,158,11,0.1); color: var(--warning); }
+        .stat-card .icon.info { background: rgba(59,130,246,0.1); color: var(--info); }
+        .stat-card .icon.danger { background: rgba(239,68,68,0.1); color: var(--danger); }
+
+        .stat-card .value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--dark);
+        }
+
+        .stat-card .label {
+            color: var(--gray);
+            font-size: 0.9rem;
+        }
+
+        /* Section */
+        .section {
+            margin-bottom: 2rem;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--dark);
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.875rem;
+            text-decoration: none;
             display: inline-flex;
             align-items: center;
             gap: 0.5rem;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
         }
-        
-        .btn-primary-custom {
-            background: white;
-            color: var(--primary-color);
-        }
-        
-        .btn-primary-custom:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(255, 255, 255, 0.3);
-            color: var(--primary-dark);
-        }
-        
-        .btn-secondary-custom {
-            background: rgba(255, 255, 255, 0.2);
+
+        .btn-primary {
+            background: var(--primary);
             color: white;
-            border: 1px solid rgba(255, 255, 255, 0.3);
         }
-        
-        .btn-secondary-custom:hover {
-            background: rgba(255, 255, 255, 0.3);
-            transform: translateY(-2px);
+
+        .btn-outline {
+            background: transparent;
+            border: 2px solid var(--border);
+            color: var(--gray);
         }
-        
-        .content-section {
-            padding: 2rem;
+
+        .btn-outline:hover {
+            border-color: var(--primary);
+            color: var(--primary);
         }
-        
-        .stat-card {
-            background: white;
+
+        /* Tables */
+        .table-container {
+            background: var(--white);
             border-radius: 16px;
-            padding: 1.5rem;
-            box-shadow: var(--card-shadow);
-            transition: all 0.3s ease;
-            border: 1px solid #e5e7eb;
-            text-align: center;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
-        
-        .stat-card:hover {
-            transform: translateY(-4px);
-            box-shadow: var(--card-hover-shadow);
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
         }
-        
-        .stat-number {
-            font-size: 2.5rem;
-            font-weight: 700;
-            margin-bottom: 0.5rem;
+
+        .table th,
+        .table td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
         }
-        
-        .stat-label {
-            color: #6b7280;
+
+        .table th {
+            background: var(--light);
             font-weight: 600;
+            color: var(--gray);
+            font-size: 0.85rem;
+            text-transform: uppercase;
+        }
+
+        .table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 100px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .badge-student { background: rgba(99,102,241,0.1); color: var(--primary); }
+        .badge-company { background: rgba(34,197,94,0.1); color: var(--success); }
+        .badge-admin { background: rgba(239,68,68,0.1); color: var(--danger); }
+
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 100px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .status-pending { background: rgba(245,158,11,0.1); color: var(--warning); }
+        .status-reviewed { background: rgba(59,130,246,0.1); color: var(--info); }
+        .status-shortlisted { background: rgba(139,92,246,0.1); color: #8b5cf6; }
+        .status-accepted { background: rgba(34,197,94,0.1); color: var(--success); }
+        .status-rejected { background: rgba(239,68,68,0.1); color: var(--danger); }
+        .status-open { background: rgba(34,197,94,0.1); color: var(--success); }
+        .status-closed { background: rgba(239,68,68,0.1); color: var(--danger); }
+        .status-filled { background: rgba(59,130,246,0.1); color: var(--info); }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            background: var(--primary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        /* Grid */
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.5rem;
+        }
+
+        /* Alert */
+        .alert {
+            padding: 1rem;
+            border-radius: 10px;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .alert-success {
+            background: rgba(34,197,94,0.1);
+            color: #15803d;
+        }
+
+        @media (max-width: 1024px) {
+            .grid-2 { grid-template-columns: 1fr; }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar { display: none; }
+            .main-content { margin-left: 0; }
         }
     </style>
 </head>
 <body>
-<div class="main-container">
-    <div class="header-section">
-        <div class="header-content">
-            <h1 class="header-title">Admin Control Panel 🛡️</h1>
-            <p class="header-subtitle">System overview and complete platform management</p>
-            
-            <div class="nav-buttons">
-                <a href="dashboard.php" class="btn-custom btn-primary-custom">
-                    <i class="fas fa-tachometer-alt"></i> Dashboard
-                </a>
-                <a href="manage_users.php" class="btn-custom btn-secondary-custom">
-                    <i class="fas fa-users-cog"></i> Manage Users
-                </a>
-                <a href="../auth/logout.php" class="btn-custom btn-secondary-custom">
-                    <i class="fas fa-sign-out-alt"></i> Logout
-                </a>
-            </div>
-        </div>
-    </div>
+    <aside class="sidebar">
+        <a href="/index.php" class="sidebar-logo">
+            <i class="fas fa-briefcase"></i> InternHub
+        </a>
+        <ul class="sidebar-nav">
+            <li><a href="/admin/dashboard.php" class="active"><i class="fas fa-home"></i> Dashboard</a></li>
+            <li><a href="/admin/users.php"><i class="fas fa-users"></i> Manage Users</a></li>
+            <li><a href="/admin/internships.php"><i class="fas fa-briefcase"></i> Internships</a></li>
+            <li><a href="/admin/applications.php"><i class="fas fa-clipboard-list"></i> Applications</a></li>
+            <li><a href="/admin/companies.php"><i class="fas fa-building"></i> Companies</a></li>
+            <li><a href="/auth/logout.php"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+        </ul>
+    </aside>
 
-    <div class="content-section">
-        <!-- Statistics Cards -->
-        <div class="row mb-4">
-            <div class="col-md-3">
-                <div class="stat-card">
-                    <div class="text-primary mb-3">
-                        <i class="fas fa-graduation-cap fa-2x"></i>
-                    </div>
-                    <div class="stat-number text-primary"><?php echo $student_count; ?></div>
-                    <div class="stat-label">Students</div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="stat-card">
-                    <div class="text-success mb-3">
-                        <i class="fas fa-building fa-2x"></i>
-                    </div>
-                    <div class="stat-number text-success"><?php echo $company_count; ?></div>
-                    <div class="stat-label">Companies</div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="stat-card">
-                    <div class="text-info mb-3">
-                        <i class="fas fa-briefcase fa-2x"></i>
-                    </div>
-                    <div class="stat-number text-info"><?php echo $internship_count; ?></div>
-                    <div class="stat-label">Internships</div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="stat-card">
-                    <div class="text-warning mb-3">
-                        <i class="fas fa-file-alt fa-2x"></i>
-                    </div>
-                    <div class="stat-number text-warning"><?php echo $application_count; ?></div>
-                    <div class="stat-label">Applications</div>
-                </div>
-            </div>
+    <main class="main-content">
+        <div class="page-header">
+            <h1 class="page-title">Admin Dashboard</h1>
         </div>
 
-        <div class="row">
+        <?php if ($flash = get_flash('success')): ?>
+            <div class="alert alert-success">
+                <i class="fas fa-check-circle"></i>
+                <?php echo $flash; ?>
+            </div>
+        <?php endif; ?>
+
+        <!-- Stats -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="icon primary"><i class="fas fa-user-graduate"></i></div>
+                <div class="value"><?php echo $stats['students'] ?? 0; ?></div>
+                <div class="label">Students</div>
+            </div>
+            <div class="stat-card">
+                <div class="icon success"><i class="fas fa-building"></i></div>
+                <div class="value"><?php echo $stats['companies'] ?? 0; ?></div>
+                <div class="label">Companies</div>
+            </div>
+            <div class="stat-card">
+                <div class="icon info"><i class="fas fa-briefcase"></i></div>
+                <div class="value"><?php echo $stats['internships'] ?? 0; ?></div>
+                <div class="label">Internships</div>
+            </div>
+            <div class="stat-card">
+                <div class="icon warning"><i class="fas fa-file-alt"></i></div>
+                <div class="value"><?php echo $stats['applications'] ?? 0; ?></div>
+                <div class="label">Applications</div>
+            </div>
+            <div class="stat-card">
+                <div class="icon danger"><i class="fas fa-clock"></i></div>
+                <div class="value"><?php echo $stats['pending_apps'] ?? 0; ?></div>
+                <div class="label">Pending</div>
+            </div>
+            <div class="stat-card">
+                <div class="icon success"><i class="fas fa-check-circle"></i></div>
+                <div class="value"><?php echo $stats['accepted_apps'] ?? 0; ?></div>
+                <div class="label">Accepted</div>
+            </div>
+        </div>
+
+        <div class="grid-2">
             <!-- Recent Users -->
-            <div class="col-md-6">
-                <div class="card border-0 shadow-sm">
-                    <div class="card-header bg-white border-0 pt-4">
-                        <h5 class="mb-0">
-                            <i class="fas fa-users text-primary me-2"></i>Recent Users
-                        </h5>
-                    </div>
-                    <div class="card-body">
-                        <?php if (empty($recent_users)): ?>
-                            <div class="text-center py-3">
-                                <i class="fas fa-user-slash text-muted fa-2x mb-2"></i>
-                                <p class="text-muted mb-0">No users registered yet.</p>
-                            </div>
-                        <?php else: ?>
-                            <div class="table-responsive">
-                                <table class="table table-sm">
-                                    <thead>
-                                        <tr>
-                                            <th>Name</th>
-                                            <th>Email</th>
-                                            <th>Role</th>
-                                            <th>Joined</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <?php foreach ($recent_users as $user): ?>
-                                            <tr>
-                                                <td><?php echo htmlspecialchars($user['name'], ENT_QUOTES); ?></td>
-                                                <td><?php echo htmlspecialchars($user['email'], ENT_QUOTES); ?></td>
-                                                <td><span class="badge bg-secondary"><?php echo htmlspecialchars($user['role'], ENT_QUOTES); ?></span></td>
-                                                <td><?php echo date('M j, Y', strtotime($user['created_at'])); ?></td>
-                                            </tr>
-                                        <?php endforeach; ?>
-                                    </tbody>
-                                </table>
-                            </div>
-                        <?php endif; ?>
-                    </div>
+            <div class="section">
+                <div class="section-header">
+                    <h2 class="section-title">Recent Users</h2>
+                    <a href="/admin/users.php" class="btn btn-outline">View All</a>
+                </div>
+                <div class="table-container">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>User</th>
+                                <th>Role</th>
+                                <th>Joined</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($recent_users as $user): ?>
+                                <tr>
+                                    <td>
+                                        <div class="user-info">
+                                            <div class="user-avatar">
+                                                <?php echo strtoupper(substr($user['name'], 0, 1)); ?>
+                                            </div>
+                                            <div>
+                                                <strong><?php echo htmlspecialchars($user['name']); ?></strong>
+                                                <div style="font-size: 0.8rem; color: var(--gray);">
+                                                    <?php echo htmlspecialchars($user['email']); ?>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge badge-<?php echo $user['role']; ?>">
+                                            <?php echo ucfirst($user['role']); ?>
+                                        </span>
+                                    </td>
+                                    <td><?php echo format_date($user['created_at']); ?></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
                 </div>
             </div>
 
             <!-- Recent Internships -->
-            <div class="col-md-6">
-                <div class="card border-0 shadow-sm">
-                    <div class="card-header bg-white border-0 pt-4">
-                        <h5 class="mb-0">
-                            <i class="fas fa-briefcase text-success me-2"></i>Recent Internships
-                        </h5>
-                    </div>
-                    <div class="card-body">
-                        <?php if (empty($recent_internships)): ?>
-                            <div class="text-center py-3">
-                                <i class="fas fa-briefcase text-muted fa-2x mb-2"></i>
-                                <p class="text-muted mb-0">No internships posted yet.</p>
-                            </div>
-                        <?php else: ?>
-                            <div class="table-responsive">
-                                <table class="table table-sm">
-                                    <thead>
-                                        <tr>
-                                            <th>Title</th>
-                                            <th>Company</th>
-                                            <th>Posted</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <?php foreach ($recent_internships as $internship): ?>
-                                            <tr>
-                                                <td><?php echo htmlspecialchars(substr($internship['title'], 0, 30), ENT_QUOTES); ?>...</td>
-                                                <td><?php echo htmlspecialchars($internship['company_name'], ENT_QUOTES); ?></td>
-                                                <td><?php echo date('M j, Y', strtotime($internship['created_at'])); ?></td>
-                                            </tr>
-                                        <?php endforeach; ?>
-                                    </tbody>
-                                </table>
-                            </div>
-                        <?php endif; ?>
-                    </div>
+            <div class="section">
+                <div class="section-header">
+                    <h2 class="section-title">Recent Internships</h2>
+                    <a href="/admin/internships.php" class="btn btn-outline">View All</a>
+                </div>
+                <div class="table-container">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Position</th>
+                                <th>Company</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($recent_internships as $int): ?>
+                                <tr>
+                                    <td>
+                                        <strong><?php echo htmlspecialchars($int['title']); ?></strong>
+                                        <div style="font-size: 0.8rem; color: var(--gray);">
+                                            <?php echo htmlspecialchars($int['location'] ?? 'Remote'); ?>
+                                        </div>
+                                    </td>
+                                    <td><?php echo htmlspecialchars($int['company_name']); ?></td>
+                                    <td>
+                                        <span class="status-badge status-<?php echo $int['status']; ?>">
+                                            <?php echo ucfirst($int['status']); ?>
+                                        </span>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
-    </div>
-</div>
+
+        <!-- Recent Applications -->
+        <div class="section">
+            <div class="section-header">
+                <h2 class="section-title">Recent Applications</h2>
+                <a href="/admin/applications.php" class="btn btn-outline">View All</a>
+            </div>
+            <div class="table-container">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Student</th>
+                            <th>Position</th>
+                            <th>Company</th>
+                            <th>Applied</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($recent_applications as $app): ?>
+                            <tr>
+                                <td>
+                                    <div class="user-info">
+                                        <div class="user-avatar">
+                                            <?php echo strtoupper(substr($app['student_name'], 0, 1)); ?>
+                                        </div>
+                                        <strong><?php echo htmlspecialchars($app['student_name']); ?></strong>
+                                    </div>
+                                </td>
+                                <td><?php echo htmlspecialchars($app['internship_title']); ?></td>
+                                <td><?php echo htmlspecialchars($app['company_name']); ?></td>
+                                <td><?php echo format_date($app['applied_at']); ?></td>
+                                <td>
+                                    <span class="status-badge status-<?php echo $app['status']; ?>">
+                                        <?php echo ucfirst($app['status']); ?>
+                                    </span>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
 </body>
 </html>
