@@ -6,7 +6,7 @@
 
 // Database credentials - Update these for your environment
 define('DB_HOST', 'localhost');
-define('DB_NAME', 'internship_db');
+define('DB_NAME', 'internship');
 define('DB_USER', 'root');
 define('DB_PASS', '');
 
