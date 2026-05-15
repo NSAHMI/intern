@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Browse Internships - InternHub</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --success: #22c55e;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --info: #3b82f6;
+            --gray: #6b7280;
+            --dark: #1f2937;
+            --light: #f3f4f6;
+            --white: #ffffff;
+            --border: #e5e7eb;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--light);
+            min-height: 100vh;
+        }
+
+        /* Navbar */
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            background: var(--white);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 2rem;
+        }
+
+        .nav-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--primary);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            list-style: none;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: var(--gray);
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover, .nav-links a.active {
+            color: var(--primary);
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 10px;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s;
+            border: none;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        .btn-outline {
+            background: transparent;
+            color: var(--gray);
+            border: 2px solid var(--border);
+        }
+
+        .btn-outline:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+
+        /* Main Content */
+        .main-content {
+            padding: 6rem 2rem 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .page-header {
+            margin-bottom: 2rem;
+        }
+
+        .page-title {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--dark);
+            margin-bottom: 0.5rem;
+        }
+
+        .page-subtitle {
+            color: var(--gray);
+            font-size: 1.1rem;
+        }
+
+        /* Search & Filters */
+        .search-section {
+            background: var(--white);
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .search-bar {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .search-input {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.875rem 1rem;
+            background: var(--light);
+            border-radius: 10px;
+            border: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .search-input:focus-within {
+            border-color: var(--primary);
+            background: var(--white);
+        }
+
+        .search-input i {
+            color: var(--gray);
+        }
+
+        .search-input input {
+            flex: 1;
+            border: none;
+            background: none;
+            font-size: 1rem;
+            font-family: inherit;
+            outline: none;
+        }
+
+        .filters {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .filter-select {
+            padding: 0.75rem 1rem;
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            font-size: 0.9rem;
+            font-family: inherit;
+            color: var(--dark);
+            background: var(--white);
+            cursor: pointer;
+            min-width: 150px;
+        }
+
+        .filter-select:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .results-info {
+            color: var(--gray);
+            margin-bottom: 1.5rem;
+        }
+
+        /* Internship Cards Grid */
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+        }
+
+        .internship-card {
+            background: var(--white);
+            border-radius: 16px;
+            padding: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            transition: all 0.2s;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .internship-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 1rem;
+        }
+
+        .company-logo {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            font-size: 1.25rem;
+        }
+
+        .badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 100px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .badge-remote { background: rgba(99,102,241,0.1); color: var(--primary); }
+        .badge-onsite { background: rgba(245,158,11,0.1); color: var(--warning); }
+        .badge-hybrid { background: rgba(59,130,246,0.1); color: var(--info); }
+
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--dark);
+            margin-bottom: 0.25rem;
+        }
+
+        .card-company {
+            color: var(--gray);
+            font-size: 0.9rem;
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .card-description {
+            color: var(--gray);
+            font-size: 0.9rem;
+            line-height: 1.5;
+            margin-bottom: 1rem;
+            flex-grow: 1;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .card-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            color: var(--gray);
+            font-size: 0.85rem;
+        }
+
+        .card-meta span {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .card-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border);
+            margin-top: auto;
+        }
+
+        .stipend {
+            font-weight: 700;
+            color: var(--success);
+        }
+
+        .card-footer .btn {
+            padding: 0.5rem 1rem;
+            font-size: 0.85rem;
+        }
+
+        /* Pagination */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-top: 2rem;
+        }
+
+        .pagination button {
+            padding: 0.5rem 1rem;
+            border: 2px solid var(--border);
+            background: var(--white);
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .pagination button:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .pagination button.active {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+
+        /* Mobile */
+        @media (max-width: 1024px) {
+            .cards-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+
+            .cards-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .search-bar {
+                flex-direction: column;
+            }
+
+            .filters {
+                flex-direction: column;
+            }
+
+            .filter-select {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="logo">
+                <i class="fas fa-briefcase"></i> InternHub
+            </a>
+            <ul class="nav-links">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="browse.html" class="active">Browse Jobs</a></li>
+                <li><a href="#">Companies</a></li>
+                <li><a href="#">About</a></li>
+            </ul>
+            <div class="nav-buttons">
+                <a href="login.html" class="btn btn-outline">Sign In</a>
+                <a href="register.html" class="btn btn-primary">Get Started</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="page-header">
+            <h1 class="page-title">Browse Internships</h1>
+            <p class="page-subtitle">Discover your perfect internship from hundreds of opportunities</p>
+        </div>
+
+        <!-- Search & Filters -->
+        <div class="search-section">
+            <div class="search-bar">
+                <div class="search-input">
+                    <i class="fas fa-search"></i>
+                    <input type="text" placeholder="Search by job title, company, or keywords...">
+                </div>
+                <button class="btn btn-primary">
+                    <i class="fas fa-search"></i> Search
+                </button>
+            </div>
+            <div class="filters">
+                <select class="filter-select">
+                    <option value="">All Work Types</option>
+                    <option value="remote">Remote</option>
+                    <option value="onsite">On-site</option>
+                    <option value="hybrid">Hybrid</option>
+                </select>
+                <select class="filter-select">
+                    <option value="">All Industries</option>
+                    <option value="technology">Technology</option>
+                    <option value="finance">Finance</option>
+                    <option value="healthcare">Healthcare</option>
+                    <option value="marketing">Marketing</option>
+                    <option value="design">Design</option>
+                </select>
+                <select class="filter-select">
+                    <option value="">All Locations</option>
+                    <option value="sf">San Francisco</option>
+                    <option value="ny">New York</option>
+                    <option value="la">Los Angeles</option>
+                    <option value="seattle">Seattle</option>
+                    <option value="austin">Austin</option>
+                </select>
+                <select class="filter-select">
+                    <option value="">Sort By</option>
+                    <option value="newest">Newest First</option>
+                    <option value="stipend">Highest Stipend</option>
+                    <option value="deadline">Deadline</option>
+                </select>
+            </div>
+        </div>
+
+        <p class="results-info">Showing <strong>24</strong> internships</p>
+
+        <!-- Internship Cards -->
+        <div class="cards-grid">
+            <div class="internship-card">
+                <div class="card-header">
+                    <div class="company-logo" style="background: #4285f4;">G</div>
+                    <span class="badge badge-remote">Remote</span>
+                </div>
+                <h3 class="card-title">Software Engineer Intern</h3>
+                <p class="card-company"><i class="fas fa-building"></i> Google Inc.</p>
+                <p class="card-description">Join our team to work on cutting-edge technologies and build products used by billions of people worldwide.</p>
+                <div class="card-meta">
+                    <span><i class="fas fa-map-marker-alt"></i> San Francisco, CA</span>
+                    <span><i class="fas fa-clock"></i> 3 months</span>
+                </div>
+                <div class="card-footer">
+                    <span class="stipend">$8,000/month</span>
+                    <a href="login.html" class="btn btn-primary">Apply Now</a>
+                </div>
+            </div>
+
+            <div class="internship-card">
+                <div class="card-header">
+                    <div class="company-logo" style="background: #00a4ef;">M</div>
+                    <span class="badge badge-hybrid">Hybrid</span>
+                </div>
+                <h3 class="card-title">Data Science Intern</h3>
+                <p class="card-company"><i class="fas fa-building"></i> Microsoft</p>
+                <p class="card-description">Work with our data team to analyze and visualize complex datasets that drive business decisions.</p>
+                <div class="card-meta">
+                    <span><i class="fas fa-map-marker-alt"></i> Seattle, WA</span>
+                    <span><i class="fas fa-clock"></i> 6 months</span>
+                </div>
+                <div class="card-footer">
+                    <span class="stipend">$7,500/month</span>
+                    <a href="login.html" class="btn btn-primary">Apply Now</a>
+                </div>
+            </div>
+
+            <div class="internship-card">
+                <div class="card-header">
+                    <div class="company-logo" style="background: #000000;">A</div>
+                    <span class="badge badge-onsite">On-site</span>
+                </div>
+                <h3 class="card-title">Product Design Intern</h3>
+                <p class="card-company"><i class="fas fa-building"></i> Apple</p>
+                <p class="card-description">Design beautiful and intuitive user experiences for Apple's world-class products.</p>
+                <div class="card-meta">
+                    <span><i class="fas fa-map-marker-alt"></i> Cupertino, CA</span>
+                    <span><i class="fas fa-clock"></i> 4 months</span>
+                </div>
+                <div class="card-footer">
+                    <span class="stipend">$7,000/month</span>
+                    <a href="login.html" class="btn btn-primary">Apply Now</a>
+                </div>
+            </div>
+
+            <div class="internship-card">
+                <div class="card-header">
+                    <div class="company-logo" style="background: #ff9900;">A</div>
+                    <span class="badge badge-hybrid">Hybrid</span>
+                </div>
+                <h3 class="card-title">Marketing Intern</h3>
+                <p class="card-company"><i class="fas fa-building"></i> Amazon</p>
+                <p class="card-description">Help develop marketing strategies for one of the world's largest e-commerce platforms.</p>
+                <div class="card-meta">
+                    <span><i class="fas fa-map-marker-alt"></i> New York, NY</span>
+                    <span><i class="fas fa-clock"></i> 3 months</span>
+                </div>
+                <div class="card-footer">
+                    <span class="stipend">$5,500/month</span>
+                    <a href="login.html" class="btn btn-primary">Apply Now</a>
+                </div>
+            </div>
+
+            <div class="internship-card">
+                <div class="card-header">
+                    <div class="company-logo" style="background: #1da1f2;">T</div>
+                    <span class="badge badge-remote">Remote</span>
+                </div>
+                <h3 class="card-title">Frontend Developer Intern</h3>
+                <p class="card-company"><i class="fas fa-building"></i> Twitter</p>
+                <p class="card-description">Build responsive and accessible user interfaces for millions of daily active users.</p>
+                <div class="card-meta">
+                    <span><i class="fas fa-map-marker-alt"></i> Remote</span>
+                    <span><i class="fas fa-clock"></i> 3 months</span>
+                </div>
+                <div class="card-footer">
+                    <span class="stipend">$6,000/month</span>
+                    <a href="login.html" class="btn btn-primary">Apply Now</a>
+                </div>
+            </div>
+
+            <div class="internship-card">
+                <div class="card-header">
+                    <div class="company-logo" style="background: #1db954;">S</div>
+                    <span class="badge badge-onsite">On-site</span>
+                </div>
+                <h3 class="card-title">Music Data Analyst Intern</h3>
+                <p class="card-company"><i class="fas fa-building"></i> Spotify</p>
+                <p class="card-description">Analyze music streaming patterns and help improve personalized recommendations.</p>
+                <div class="card-meta">
+                    <span><i class="fas fa-map-marker-alt"></i> New York, NY</span>
+                    <span><i class="fas fa-clock"></i> 4 months</span>
+                </div>
+                <div class="card-footer">
+                    <span class="stipend">$5,000/month</span>
+                    <a href="login.html" class="btn btn-primary">Apply Now</a>
+                </div>
+            </div>
+
+            <div class="internship-card">
+                <div class="card-header">
+                    <div class="company-logo" style="background: #e50914;">N</div>
+                    <span class="badge badge-hybrid">Hybrid</span>
+                </div>
+                <h3 class="card-title">Backend Engineer Intern</h3>
+                <p class="card-company"><i class="fas fa-building"></i> Netflix</p>
+                <p class="card-description">Work on scalable backend systems that power streaming for millions globally.</p>
+                <div class="card-meta">
+                    <span><i class="fas fa-map-marker-alt"></i> Los Angeles, CA</span>
+                    <span><i class="fas fa-clock"></i> 6 months</span>
+                </div>
+                <div class="card-footer">
+                    <span class="stipend">$8,500/month</span>
+                    <a href="login.html" class="btn btn-primary">Apply Now</a>
+                </div>
+            </div>
+
+            <div class="internship-card">
+                <div class="card-header">
+                    <div class="company-logo" style="background: #0077b5;">L</div>
+                    <span class="badge badge-remote">Remote</span>
+                </div>
+                <h3 class="card-title">Business Analyst Intern</h3>
+                <p class="card-company"><i class="fas fa-building"></i> LinkedIn</p>
+                <p class="card-description">Drive insights and strategic decisions through data analysis and business intelligence.</p>
+                <div class="card-meta">
+                    <span><i class="fas fa-map-marker-alt"></i> Remote</span>
+                    <span><i class="fas fa-clock"></i> 3 months</span>
+                </div>
+                <div class="card-footer">
+                    <span class="stipend">$5,500/month</span>
+                    <a href="login.html" class="btn btn-primary">Apply Now</a>
+                </div>
+            </div>
+
+            <div class="internship-card">
+                <div class="card-header">
+                    <div class="company-logo" style="background: #7289da;">D</div>
+                    <span class="badge badge-remote">Remote</span>
+                </div>
+                <h3 class="card-title">Mobile Developer Intern</h3>
+                <p class="card-company"><i class="fas fa-building"></i> Discord</p>
+                <p class="card-description">Build features for one of the fastest-growing communication platforms.</p>
+                <div class="card-meta">
+                    <span><i class="fas fa-map-marker-alt"></i> Remote</span>
+                    <span><i class="fas fa-clock"></i> 4 months</span>
+                </div>
+                <div class="card-footer">
+                    <span class="stipend">$6,500/month</span>
+                    <a href="login.html" class="btn btn-primary">Apply Now</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pagination -->
+        <div class="pagination">
+            <button><i class="fas fa-chevron-left"></i></button>
+            <button class="active">1</button>
+            <button>2</button>
+            <button>3</button>
+            <button>4</button>
+            <button>5</button>
+            <button><i class="fas fa-chevron-right"></i></button>
+        </div>
+    </main>
+</body>
+</html>
